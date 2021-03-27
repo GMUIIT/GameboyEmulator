@@ -17,7 +17,27 @@ public class CPU {
   }
 
 //#region ---- ---- ---- ---- ---- Registers ---- ---- ---- ---- ---- ---- ---- ----
-  // Code goes here!
+  private RegisterSet regSet = new RegisterSet();
+
+  // private RegisterSet save0 = new RegisterSet(0, 0, 0, 0, 0, 0);
+  // private RegisterSet save1 = new RegisterSet(0, 0, 0, 0, 0, 0);
+  // private RegisterSet save2 = new RegisterSet(0, 0, 0, 0, 0, 0);
+  // private RegisterSet save3 = new RegisterSet(0, 0, 0, 0, 0, 0);
+
+  // Wrapper Methods
+
+  /**
+   * Sets the Program counter of the register set.
+   * @param value
+   */
+  private void SetPC(int value) { regSet.setByte(Registers.PC, value); }
+
+  /**
+   * Sets the Stack Pointer of the register set.
+   * @param value
+   */
+  private void SetSP(int value) { regSet.setByte(Registers.SP, value); }
+
   //#endregion
 
 //#region ---- ---- ---- ---- ----  Opcodes  ---- ---- ---- ---- ---- ---- ---- ----
@@ -396,6 +416,15 @@ public class CPU {
    */
   public int executeOpcode(short opcode) {
     switch(opcode) {
+      
+      //#region 
+      case 0x00:
+        // NOP
+        return 0;
+      
+      case 0x10:
+        // STOP
+
       case 0x06:
         //CPU_8BIT_LOAD() ;
         return 8;

@@ -16,22 +16,40 @@
 // unsigned word is an int
 // signed Word is a short
 
+import java.io.*;
+
 public class Program {
 
-  private short[] cartridgeMemory = new short[0x200000];
+  private static byte[] cartridgeMemory;
 
   /**
    * 
    */
-  public void loadCartridge() {
-    // loads the catridge if we want to I guess
-    System.out.println("Cartridge is loaded!");
+  public static byte[] loadCartridge() {
+    String fileName = "Tetris (Japan) (En).gb";
+    byte[] cartridgeMemory = new byte[0x200000];
+
+    try {
+      FileInputStream inputStream = new FileInputStream(fileName);
+
+      int total = 0;
+      int nRead = 0;
+
+      while((nRead = inputStream.read(cartridgeMemory)) != -1) { total += nRead; }
+      inputStream.close();        
+
+      System.out.println("Read " + total + " bytes");
+    }
+    catch(FileNotFoundException ex) { System.out.println("Unable to open file '" + fileName + "'"); }
+    catch(IOException ex) { System.out.println("Error reading file '" + fileName + "'"); }
+
+    return cartridgeMemory;
   }
 
   /**
    * 
    */
-  public void renderScreen() {
+  public static void renderScreen() {
     // Renders the screen?
     System.out.println("The screen is rendering!");
   }
@@ -40,7 +58,7 @@ public class Program {
    * (edited by Angel)
    * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
    */
-  public void emulatorUpdate() {
+  public static void emulatorUpdate() {
     final int MAXCYCLES = 69905;
     int thisCycles = 0;
 
@@ -74,5 +92,8 @@ public class Program {
    */
   public static void main(String[] args) {
     tester();
+    System.out.println(cartridgeMemory);
+    cartridgeMemory = loadCartridge();
+    System.out.println(cartridgeMemory);
   }
 }
