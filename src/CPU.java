@@ -1,6 +1,6 @@
 /**
  * CPU class.
- * Has all the registers and opcodes and stuff.
+ * Has all opcodes and stuff.
  * 
  * The #region and the #endregion are there for code folding basically since this is a very large
  * file and has many sections to it. This is also because I use an extention for it in VS Code. (Edited by Angel)
@@ -30,13 +30,19 @@ public class CPU {
    * Sets the Program counter of the register set.
    * @param value
    */
-  private void SetPC(int value) { regSet.setByte(Registers.PC, value); }
+  private void SetPC(int value) { regSet.setWord(Registers_16.PC, value); }
 
   /**
    * Sets the Stack Pointer of the register set.
    * @param value
    */
-  private void SetSP(int value) { regSet.setByte(Registers.SP, value); }
+  private void SetSP(int value) { regSet.setWord(Registers_16.SP, value); }
+
+  /**
+   * Sets the Accumulator value
+   * @param value
+   */
+  private void SetA(int value) { regSet.setByte(Registers_8.A, value); }
 
   //#endregion
 
@@ -106,7 +112,35 @@ public class CPU {
   /**
    * 
    */
+  void ADC_I() {
+
+  }
+
+  /**
+   * 
+   */
   void ADD() {
+
+  }
+
+  /**
+   * 
+   */
+  void ADD_I() {
+
+  }
+
+  /**
+   * 
+   */
+  void ADD_I_16() {
+
+  }
+
+  /**
+   * 
+   */
+  void ADD_16() {
 
   }
 
@@ -120,7 +154,21 @@ public class CPU {
   /**
    * 
    */
+  void SUB_I() {
+
+  }
+
+  /**
+   * 
+   */
   void SBC() {
+
+  }
+
+  /**
+   * 
+   */
+  void SBC_I() {
 
   }
   
@@ -134,7 +182,21 @@ public class CPU {
   /**
    * 
    */
+  void AND_I() {
+
+  }
+
+  /**
+   * 
+   */
   void OR() {
+
+  }
+
+  /**
+   * 
+   */
+  void OR_I() {
 
   }
 
@@ -148,7 +210,21 @@ public class CPU {
   /**
    * 
    */
+  void XOR_I() {
+
+  }
+
+  /**
+   * 
+   */
   void CP() {
+
+  }
+
+  /**
+   * 
+   */
+  void CP_I() {
 
   }
 
@@ -411,10 +487,11 @@ public class CPU {
 
   /**
    * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
-   * @param opcode
-   * @return
+   * @param instruction
+   * @return clock cycles needed for the operation
    */
   public int executeOpcode(short opcode) {
+
     switch(opcode) {
       
       //#region 
@@ -430,7 +507,7 @@ public class CPU {
         return 8;
 
       case 0x80:
-        //CPU_8BIT_ADD() ;
+        //CPU_8BIT_ADD
         return 4;
 
       case 0x90:

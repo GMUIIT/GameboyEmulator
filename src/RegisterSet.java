@@ -1,28 +1,44 @@
 import java.util.HashMap;
 
-/**
- * Enum for each register type
- */
-enum Registers {
+enum Registers_16 {
   AF, BC, DE, HL, SP, PC;
 };
 
-public class RegisterSet {
-  private final int UPPER_BYTE = 0xFF00;
-  private final int LOWER_BYTE = 0x00FF;
+enum Registers_8 {
+  A, F, B, C, D, E, H, L;
 
-  private HashMap<Registers, Integer> registerMap = new HashMap<Registers, Integer>();
-  
+  public int value;
+
+  Registers_8() {
+    this.value = this.ordinal();
+  }
+};
+
+/**
+ * Register Set Class.
+ * 
+ * This stores all the registers for the CPU and stuff.
+ * Registers can be accessed either by Byte or by Word.
+ */
+public class RegisterSet {
+  // Stores all the register values
+  private HashMap<Registers_16, Integer> registerMap = new HashMap<Registers_16, Integer>();
+
+  // This is so we can get the register types via index values
+  public Registers_16[] register16List = Registers_16.values();
+
+  public Registers_8[] register8List = Registers_8.values();
+
   /**
-   * Constructor method. Sets all the 16-bit registers to 0.
+   * Constructor method. Sets all the 16-bit Registers_16 to 0.
    */
   public RegisterSet() {
-    registerMap.put(Registers.AF, 0);
-    registerMap.put(Registers.BC, 0);
-    registerMap.put(Registers.DE, 0);
-    registerMap.put(Registers.HL, 0);
-    registerMap.put(Registers.SP, 0);
-    registerMap.put(Registers.PC, 0);
+    registerMap.put(Registers_16.AF, 0);
+    registerMap.put(Registers_16.BC, 0);
+    registerMap.put(Registers_16.DE, 0);
+    registerMap.put(Registers_16.HL, 0);
+    registerMap.put(Registers_16.SP, 0);
+    registerMap.put(Registers_16.PC, 0);
   }
   
   /**
@@ -35,39 +51,36 @@ public class RegisterSet {
    * @param PC  16-bit Program Counter Register
    */
   public RegisterSet(int AF, int BC, int DE, int HL, int SP, int PC) {
-    registerMap.put(Registers.AF, AF);
-    registerMap.put(Registers.BC, BC);
-    registerMap.put(Registers.DE, DE);
-    registerMap.put(Registers.HL, HL);
-    registerMap.put(Registers.SP, SP);
-    registerMap.put(Registers.PC, PC);
+    registerMap.put(Registers_16.AF, AF);
+    registerMap.put(Registers_16.BC, BC);
+    registerMap.put(Registers_16.DE, DE);
+    registerMap.put(Registers_16.HL, HL);
+    registerMap.put(Registers_16.SP, SP);
+    registerMap.put(Registers_16.PC, PC);
   }
 
   /**
    * Gets the 16-bit word of a register
-   * @param register register to get
+   * @param register 16-bit register to get
    * @return value of the register
    */
-  public int getByte(Registers register) {
+  public int getWord(Registers_16 register) {
     return registerMap.get(register);
   }
 
   /**
    * Gets the 8-bit upper byte of a register
-   * @param register register to get
+   * @param register 8-bit register to get
    * @return value of the register
    */
-  public int getUpperByte(Registers register) {
-    return registerMap.get(register) >> 8;
-  }
+  public int getByte(Registers_8 register) {
+    Registers_16 reg = register16List[register.value >> 1];
+    int val = registerMap.get(reg);
 
-  /**
-   * Gets the 8-bit lower byte of a register
-   * @param register register to get
-   * @return value of the register
-   */
-  public int getLowerByte(Registers register) {
-    return registerMap.get(register) & LOWER_BYTE;
+    if (register.value % 2 > 0)
+      return val & 0x00FF;
+    else
+      return (val & 0xFF00) >> 8;
   }
 
   /**
@@ -75,40 +88,58 @@ public class RegisterSet {
    * @param register register to set
    * @param value value to set
    */
-  public void setByte(Registers register, int value) {
+  public void setWord(Registers_16 register, int value) {
     registerMap.put(register, value);
   }
 
   /**
-   * Sets the 8-bit upper byte of a register
+   * Sets the 8-bit byte of a register
    * @param register register to set
    * @param value value to set
    */
-  public void setUpperByte(Registers register, int value) {
-    int val = (registerMap.get(register) & LOWER_BYTE) | ((value & LOWER_BYTE) << 8);
-    registerMap.put(register, val);
+  public void setByte(Registers_8 register, int value) {
+    Registers_16 reg = register16List[register.value >> 1];
+    int val = registerMap.get(reg);
+
+    if (register.value % 2 > 0)
+      val = (val & 0xFF00) | (value & 0x00FF);
+    else
+      val = ((value & 0x00FF) << 8) | (val & 0x00FF);
+
+    registerMap.put(reg, val);
   }
 
   /**
-   * Sets the 8-bit lower byte of a register
-   * @param register register to set
-   * @param value value to set
+   * This is to test that the registerSet class is working properly
    */
-  public void setLowerByte(Registers register, int value) {
-    int val = (registerMap.get(register) & UPPER_BYTE) | (value & LOWER_BYTE);
-    registerMap.put(register, val);
-  }
-
-  /*
-  public void exampleUsage() {
+  public static void main(String[] args) {
     RegisterSet regSet = new RegisterSet();
-    regSet.setByte(Registers.AF, 15);
 
-    regSet.setUpperByte(Registers.HL, 3);
-    regSet.setLowerByte(Registers.AF, 3);
+    System.out.printf("16-bit Register Tests\n");
 
-    int value = regSet.getUpperByte(Registers.AF);    // Gives you the value at A
-    System.out.println(value);
+    regSet.setWord(Registers_16.BC, 0x1384);
+    regSet.setWord(Registers_16.DE, 0x4852);
+    regSet.setWord(Registers_16.HL, 0x2672);
+    regSet.setWord(Registers_16.SP, 0x9836);
+    regSet.setWord(Registers_16.PC, 0x0001);
+
+    System.out.printf("BC: %02x B:%02x C:%02x\n", regSet.getWord(Registers_16.BC), regSet.getByte(Registers_8.B), regSet.getByte(Registers_8.C));
+    System.out.printf("DE: %02x D:%02x E:%02x\n", regSet.getWord(Registers_16.DE), regSet.getByte(Registers_8.D), regSet.getByte(Registers_8.E));
+    System.out.printf("HL: %02x H:%02x L:%02x\n", regSet.getWord(Registers_16.HL), regSet.getByte(Registers_8.H), regSet.getByte(Registers_8.L));
+    System.out.printf("SP: %02x PC: %02x\n", regSet.getWord(Registers_16.SP), regSet.getWord(Registers_16.PC));
+    System.out.printf("8-bit Register Tests\n");
+
+    regSet.setByte(Registers_8.B, 0x38);
+    regSet.setByte(Registers_8.C, 0x85);
+    regSet.setByte(Registers_8.D, 0x10);
+    regSet.setByte(Registers_8.E, 0x08);
+    regSet.setByte(Registers_8.H, 0x12);
+    regSet.setByte(Registers_8.L, 0x31);
+    regSet.setByte(Registers_8.A, 0x72);
+
+    System.out.printf("BC: %02x B:%02x C:%02x\n", regSet.getWord(Registers_16.BC), regSet.getByte(Registers_8.B), regSet.getByte(Registers_8.C));
+    System.out.printf("DE: %02x D:%02x E:%02x\n", regSet.getWord(Registers_16.DE), regSet.getByte(Registers_8.D), regSet.getByte(Registers_8.E));
+    System.out.printf("HL: %02x H:%02x L:%02x\n", regSet.getWord(Registers_16.HL), regSet.getByte(Registers_8.H), regSet.getByte(Registers_8.L));
+    System.out.printf("AF: %02x A:%02x F:%02x\n", regSet.getWord(Registers_16.AF), regSet.getByte(Registers_8.A), regSet.getByte(Registers_8.F));
   }
-  */
 }
