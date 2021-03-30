@@ -18,9 +18,15 @@
 
 import java.io.*;
 
-public class Program {
+public class Program {  
+  private static CPU cpu;
+  private static MemoryMap memMap;
 
-  private static byte[] cartridgeMemory;
+  public static void emulatorStart() {
+    cpu = new CPU();
+    cpu.regSet = new RegisterSet();
+    memMap = new MemoryMap();
+  }
 
   /**
    * 
@@ -32,8 +38,7 @@ public class Program {
     try {
       FileInputStream inputStream = new FileInputStream(fileName);
 
-      int total = 0;
-      int nRead = 0;
+      int total = 0, nRead = 0;
 
       while((nRead = inputStream.read(cartridgeMemory)) != -1) { total += nRead; }
       inputStream.close();        
@@ -60,11 +65,11 @@ public class Program {
    */
   public static void emulatorUpdate() {
     final int MAXCYCLES = 69905;
-    int thisCycles = 0;
+    int cycles_count = 0;
 
-    while (thisCycles < MAXCYCLES) {
-      //int cycles = ExecuteNextOpcode();
-      //cyclesThisUpdate+=cycles;
+    while (cycles_count < MAXCYCLES) {
+      int cycles = cpu.executeNextOpcode();
+      cycles_count += cycles;
       //UpdateTimers(cycles);
       //UpdateGraphics(cycles);
       //DoInterupts();
@@ -78,8 +83,9 @@ public class Program {
    */
   public static void tester() {
     // Put tester code here!
-    CPU cpu = new CPU();
-    Bus bus = new Bus();
+    System.out.println(memMap.cartridgeMemory);
+    memMap.cartridgeMemory = loadCartridge();
+    System.out.println(memMap.cartridgeMemory);
 
     System.out.println("This is a tester!");
   }
@@ -91,9 +97,11 @@ public class Program {
    * We might make that the file name of the ROM it runs for all I know... (edited by Angel)
    */
   public static void main(String[] args) {
+    emulatorStart();
     tester();
-    System.out.println(cartridgeMemory);
-    cartridgeMemory = loadCartridge();
-    System.out.println(cartridgeMemory);
+
+    // while(true) {
+    //   emulatorUpdate();
+    // }
   }
 }

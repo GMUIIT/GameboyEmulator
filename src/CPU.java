@@ -17,7 +17,7 @@ public class CPU {
   }
 
 //#region ---- ---- ---- ---- ---- Registers ---- ---- ---- ---- ---- ---- ---- ----
-  private RegisterSet regSet = new RegisterSet();
+  public RegisterSet regSet;
 
   // private RegisterSet save0 = new RegisterSet(0, 0, 0, 0, 0, 0);
   // private RegisterSet save1 = new RegisterSet(0, 0, 0, 0, 0, 0);
@@ -30,19 +30,25 @@ public class CPU {
    * Sets the Program counter of the register set.
    * @param value
    */
-  private void SetPC(int value) { regSet.setWord(Registers_16.PC, value); }
+  public void setPC(int value) { regSet.setWord(Reg_16.PC, value); }
+
+  /**
+   * Gets the Program counter of the register set.
+   * @param value
+   */
+  public void getPC() { regSet.getWord(Reg_16.PC); }
 
   /**
    * Sets the Stack Pointer of the register set.
    * @param value
    */
-  private void SetSP(int value) { regSet.setWord(Registers_16.SP, value); }
+  public void setSP(int value) { regSet.setWord(Reg_16.SP, value); }
 
   /**
    * Sets the Accumulator value
    * @param value
    */
-  private void SetA(int value) { regSet.setByte(Registers_8.A, value); }
+  public void setA(int value) { regSet.setByte(Reg_8.A, value); }
 
   //#endregion
 
