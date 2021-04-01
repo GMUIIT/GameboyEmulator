@@ -24,33 +24,64 @@ public class CPU {
   // private RegisterSet save2 = new RegisterSet(0, 0, 0, 0, 0, 0);
   // private RegisterSet save3 = new RegisterSet(0, 0, 0, 0, 0, 0);
 
-  // Wrapper Methods
+//#endregion
+
+//#region ---- ---- ---- ---- ---- Dissassembly Decode Table ---- ---- ---- ---- ---- ----
+  
+  /**
+   * Argument modifiers for Jump Instructions specifying certain conditions to jump.
+   * NZ = no zero
+   * Z = zero
+   * NC = no Carry
+   * C = Carry
+   */
+  enum CC_t {
+    NZ, Z, NC, C;
+
+    public int index;
+
+    CC_t() { this.index = this.ordinal(); }
+  }
 
   /**
-   * Sets the Program counter of the register set.
-   * @param value
+   * ALU operation types for 8-bit ALU operations.
+   * ADD = Add instruction
+   * ADC = Add instruction with carry
+   * SUB = Subtraction instruction
+   * SBC = Subtraction instruction with carry
+   * AND = And instruction
+   * XOR = XOR instruction
+   * OR  = Or instruction
+   * CP  = Compare instruction
    */
-  public void setPC(int value) { regSet.setWord(Reg_16.PC, value); }
+  enum Alu_t {
+    ADD, ADC, SUB, SBC, AND, XOR, OR, CP;
+
+    public int index;
+
+    Alu_t() { this.index = this.ordinal(); }
+  }
 
   /**
-   * Gets the Program counter of the register set.
-   * @param value
+   * 
    */
-  public void getPC() { regSet.getWord(Reg_16.PC); }
+  enum Rot_t {
+    RLC, RRC, RL, RR, SLA, SRA, SWAP, SRL;
 
-  /**
-   * Sets the Stack Pointer of the register set.
-   * @param value
-   */
-  public void setSP(int value) { regSet.setWord(Reg_16.SP, value); }
+    public int index;
 
-  /**
-   * Sets the Accumulator value
-   * @param value
-   */
-  public void setA(int value) { regSet.setByte(Reg_8.A, value); }
+    Rot_t() { this.index = this.ordinal(); }
+  }
 
-  //#endregion
+  // Opcode Argument Types
+  final Reg_8[] r_args = { Reg_8.B, Reg_8.C, Reg_8.D, Reg_8.E, Reg_8.H, Reg_8.L, null, Reg_8.A };
+  final Reg_16[] rp_args = { Reg_16.BC, Reg_16.DE, Reg_16.HL, Reg_16.SP };
+  final Reg_16[] rp2_args = { Reg_16.BC, Reg_16.DE, Reg_16.HL, Reg_16.AF };
+  final CC_t[] cc_args = CC_t.values();
+  final Alu_t[] alu_args = Alu_t.values();
+  final Rot_t[] rot_args = Rot_t.values();
+
+//#endregion
 
 //#region ---- ---- ---- ---- ----  Opcodes  ---- ---- ---- ---- ---- ---- ---- ----
 

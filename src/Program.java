@@ -28,6 +28,8 @@ public class Program {
     memMap = new MemoryMap();
   }
 
+  //#region ---- ---- ---- ---- ---- Emulator Functions
+
   /**
    * 
    */
@@ -77,6 +79,8 @@ public class Program {
 
     //renderScreen();
   }
+
+  //#endregion
 
   /**
    * 

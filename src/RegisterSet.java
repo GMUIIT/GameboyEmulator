@@ -26,15 +26,15 @@ public class RegisterSet {
   public Reg_8[] register8List = Reg_8.values();
 
   /**
-   * Constructor method. Sets all the 16-bit Reg_16 to 0.
+   * Constructor method. Sets all the 16-bit Reg_16 to initialized values.
    */
   public RegisterSet() {
-    registerMap.put(Reg_16.AF, 0);
-    registerMap.put(Reg_16.BC, 0);
-    registerMap.put(Reg_16.DE, 0);
-    registerMap.put(Reg_16.HL, 0);
-    registerMap.put(Reg_16.SP, 0);
-    registerMap.put(Reg_16.PC, 0);
+    registerMap.put(Reg_16.AF, 0x01B0);
+    registerMap.put(Reg_16.BC, 0x0013);
+    registerMap.put(Reg_16.DE, 0x00D8);
+    registerMap.put(Reg_16.HL, 0x014D);
+    registerMap.put(Reg_16.SP, 0xFFFE);
+    registerMap.put(Reg_16.PC, 0x100);
   }
   
   /**
@@ -54,6 +54,8 @@ public class RegisterSet {
     registerMap.put(Reg_16.SP, SP);
     registerMap.put(Reg_16.PC, PC);
   }
+
+  //#region ---- ---- ---- ---- ---- Public Methods
 
   /**
    * Gets the 16-bit word of a register
@@ -104,6 +106,85 @@ public class RegisterSet {
 
     registerMap.put(reg, val);
   }
+
+  //#endregion
+
+  //#region ---- ---- ---- ---- ---- Wrapper Methods
+
+  /**
+   * Sets the Program Counter
+   * @param value
+   */
+  public void setPC(int value) { setWord(Reg_16.PC, value); }
+  /**
+   * Gets the Program Counter
+   * @return
+   */
+  public int getPC() { return getWord(Reg_16.PC); }
+
+  /**
+   * Sets the Program Counter
+   * @param value
+   */
+  public void setSP(int value) { setWord(Reg_16.SP, value); }
+  /**
+   * Gets the Program Counter
+   * @return
+   */
+  public int getSP() { return getWord(Reg_16.SP); }
+
+  /**
+   * Sets the A register
+   * @param value
+   */
+  public void setA(int value) { setByte(Reg_8.A, value); }
+  /**
+   * Gets the A register
+   * @return
+   */
+  public int getA() { return getByte(Reg_8.A); }
+
+  //#endregion
+
+  //#region ---- ---- ---- ---- ---- Flag Methods
+
+  /**
+   * Sets the zero flag in the F register
+   */
+  public void setZeroFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x80); }
+  /**
+   * clears the zero flag in the F register
+   */
+  public void clearZeroFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x80); }
+
+  /**
+   * Sets the substract flag in the F register
+   */
+  public void setSubtractFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x40); }
+  /**
+   * Clears the subtract flag in the F register
+   */
+  public void clearSubtractFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x40); }
+
+  /**
+   * Sets the Half-Carry flag in the F register
+   */
+  public void setHalfCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x20); }
+  /**
+   * Clears the Half-Carry flag in the F register
+   */
+  public void clearHalfCarryFFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x20); }
+
+  /**
+   * Sets the Carry flag in the F register
+   */
+  public void setCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x10); }
+  /**
+   * Clears the carry flag in the F register
+   */
+  public void clearCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x10); }
+
+  //#endregion
 
   /**
    * Test to make sure the registerSet class works properly.
