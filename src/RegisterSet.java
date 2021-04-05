@@ -190,7 +190,8 @@ public class RegisterSet {
    * Test to make sure the registerSet class works properly.
    * You can run this test by running this command:
    * 
-   * javac -d compiled RegisterSet.java; java -cp compiled RegisterSet
+   * javac -d compiled RegisterSet.java
+   * java -cp compiled RegisterSet
    * 
    */
   public static void main(String[] args) {
