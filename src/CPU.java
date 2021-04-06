@@ -1,3 +1,5 @@
+import java.util.HashMap;
+
 /**
  * CPU class.
  * Has all opcodes and stuff.
@@ -5,7 +7,6 @@
  * The #region and the #endregion are there for code folding basically since this is a very large
  * file and has many sections to it. This is also because I use an extention for it in VS Code. (Edited by Angel)
  */
-
 public class CPU {
 
   /**
@@ -14,6 +15,7 @@ public class CPU {
    */
   public CPU() {
     System.out.println("This is a new CPU!");
+    initializeHashmaps();
   }
 
 //#region ---- ---- ---- ---- ---- Registers ---- ---- ---- ---- ---- ---- ---- ----
@@ -81,6 +83,22 @@ public class CPU {
   final Alu_t[] alu_args = Alu_t.values();
   final Rot_t[] rot_args = Rot_t.values();
 
+  @FunctionalInterface
+  interface AluCommand { public void invoke(Reg_8 source); }
+  
+  HashMap<Alu_t, AluCommand> AluMap = new HashMap<Alu_t, AluCommand>();
+
+  public void initializeHashmaps() {
+    AluMap.put(Alu_t.ADC, (source) -> ADC(source));
+    AluMap.put(Alu_t.ADD, (source) -> ADD(source));
+    AluMap.put(Alu_t.AND, (source) -> AND(source));
+    AluMap.put(Alu_t.CP,  (source) -> CP(source));
+    AluMap.put(Alu_t.OR,  (source) -> OR(source));
+    AluMap.put(Alu_t.SBC, (source) -> SBC(source));
+    AluMap.put(Alu_t.SUB, (source) -> SUB(source));
+    AluMap.put(Alu_t.XOR, (source) -> XOR(source));
+  }
+
 //#endregion
 
 //#region ---- ---- ---- ---- ----  Opcodes  ---- ---- ---- ---- ---- ---- ---- ----
@@ -88,10 +106,12 @@ public class CPU {
   //#region ---- ---- ---- ---- ---- Load Opcodes
 
   /**
-   * 
+   * Loads a value from an 8-bit register to another register
+   * @param destination
+   * @param source
    */
-  void LD() {
-
+  void LD(Reg_8 destination, Reg_8 source) {
+    regSet.setByte(destination, regSet.getByte(source));
   }
   
   /**
@@ -142,8 +162,10 @@ public class CPU {
   /**
    * 
    */
-  void ADC() {
-
+  void ADC(Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    
+    // Code goes here!
   }
 
   /**
@@ -155,9 +177,25 @@ public class CPU {
 
   /**
    * 
+   * @param destination
+   * @param source
    */
-  void ADD() {
+  void ADD(Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = regSet.getA() + value;
 
+    regSet.setA(result & 0xFF);
+
+    if ((result & 0xFF00) > 0) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (result > 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if (((result & 0x0F) + (value & 0x0F)) > 0x0F) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.clearNegativeFlag();
   }
 
   /**
@@ -184,8 +222,10 @@ public class CPU {
   /**
    * 
    */
-  void SUB() {
-
+  void SUB(Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    
+    // Code goes here!
   }
 
   /**
@@ -198,8 +238,10 @@ public class CPU {
   /**
    * 
    */
-  void SBC() {
-
+  void SBC(Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    
+    // Code goes here!
   }
 
   /**
@@ -212,8 +254,10 @@ public class CPU {
   /**
    * 
    */
-  void AND() {
-
+  void AND(Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    
+    // Code goes here!
   }
 
   /**
@@ -226,8 +270,10 @@ public class CPU {
   /**
    * 
    */
-  void OR() {
-
+  void OR(Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    
+    // Code goes here!
   }
 
   /**
@@ -240,8 +286,10 @@ public class CPU {
   /**
    * 
    */
-  void XOR() {
-
+  void XOR(Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    
+    // Code goes here!
   }
 
   /**
@@ -254,8 +302,10 @@ public class CPU {
   /**
    * 
    */
-  void CP() {
-
+  void CP(Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    
+    // Code goes here!
   }
 
   /**
@@ -522,56 +572,59 @@ public class CPU {
 
 //#region ---- ---- ---- ---- ---- Misc. CPU Functions ---- ---- ---- ---- ---- ----
 
+  final int M_CYCLE = 4;          // Clock cycle for a single-byte operation in the Gameboy
+  final int X_MASK = 0b11000000;  // Mask for the X portion of the arguments in the Opcode.
+  final int Y_MASK = 0b00111000;  // Mask for the Y portion of the arguments in the Opcode.
+  final int Z_MASK = 0b00000111;  // Mask for the Z portion of the arguments in the Opcode.
+  final int P_MASK = 0b00110000;  // Mask for the P portion of the arguments in the Opcode.
+  final int Q_MASK = 0b00001000;  // Mask for the Q portion of the arguments in the Opcode.
+
   /**
-   * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
-   * @param instruction
-   * @return clock cycles needed for the operation
+   * <p>Decodes and executes the opcode specified in the argument.</p>
+   * Slightly Based on:
+   * http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
+   * 
+   * Mostly Based on:
+   * https://gb-archive.github.io/salvage/decoding_gbz80_opcodes/Decoding%20Gamboy%20Z80%20Opcodes.html
+   * 
+   * @param opcode - Opcode Command
+   * @return Clock cycles needed for the operation
    */
   public int executeOpcode(short opcode) {
 
-    switch(opcode) {
-      
-      //#region 
-      case 0x00:
-        // NOP
-        return 0;
-      
-      case 0x10:
-        // STOP
+    // CB-prefixed opcodes
+    if (opcode == 0xCB) { executeExtendedOpcode(); }
 
-      case 0x06:
-        //CPU_8BIT_LOAD() ;
-        return 8;
+    int x_arg = (opcode & X_MASK) >> 6;
+    int y_arg = (opcode & Y_MASK) >> 3;
+    int z_arg = opcode & Z_MASK;
+    int p_arg = (opcode & P_MASK) >> 5;
+    int q_arg = (opcode & Q_MASK) >> 4;
 
-      case 0x80:
-        //CPU_8BIT_ADD
-        return 4;
-
-      case 0x90:
-        //CPU_8BIT_SUB() ;
-        return 4 ;
-
-      case 0xAF:
-        //CPU_8BIT_XOR() ;
-        return 4;
-
-      case 0x20 :
-        //CPU_JUMP_IMMEDIATE() ;
-        return 8;
-
-      case 0xCC :
-        //CPU_CALL();
-      case 0xD0:
-        //CPU_RETURN();
-        return 8;
-
-      case 0xCB:
-        return executeExtendedOpcode();
-
-      default:
-        //assert(false);
-        return 0; // unhandled opcode
+    switch(x_arg) {
+      case 0:
+        // Opcodes
+        break;
+      case 1:
+        if ((y_arg == 6) && (z_arg == 6)) {
+          HALT();
+        }
+        else {
+          LD(r_args[y_arg], r_args[z_arg]);
+        }
+        return M_CYCLE;
+      case 2:
+        AluMap.get(alu_args[y_arg]).invoke(r_args[z_arg]);
+        return M_CYCLE;
+      case 3:
+        // Opcodes
+        break;
+      default:    // Undefined
+        System.out.println("Opcode is undefined!");
+        break;
     }
+
+    return 0;
   }
 
   /**
@@ -587,11 +640,11 @@ public class CPU {
     switch(opcode) {
       case 0xB :
         //CPU_RRC(m_RegisterDE.lo) ;
-        return 8;
+        return M_CYCLE*2;
 
       case 0x73 :
         //CPU_TEST_BIT( m_RegisterDE.lo, 6 ) ;
-        return 8;
+        return M_CYCLE*2;
 
       default:
         //assert(false);

@@ -158,13 +158,13 @@ public class RegisterSet {
   public void clearZeroFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x80); }
 
   /**
-   * Sets the substract flag in the F register
+   * Sets the Negative flag in the F register
    */
-  public void setSubtractFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x40); }
+  public void setNegativeFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x40); }
   /**
-   * Clears the subtract flag in the F register
+   * Clears the Negative flag in the F register
    */
-  public void clearSubtractFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x40); }
+  public void clearNegativeFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x40); }
 
   /**
    * Sets the Half-Carry flag in the F register
@@ -173,7 +173,7 @@ public class RegisterSet {
   /**
    * Clears the Half-Carry flag in the F register
    */
-  public void clearHalfCarryFFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x20); }
+  public void clearHalfCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x20); }
 
   /**
    * Sets the Carry flag in the F register
