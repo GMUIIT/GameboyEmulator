@@ -22,7 +22,7 @@ import java.util.ArrayList;
  */
 public class DebuggerTable extends JPanel {
 	private static final long serialVersionUID = -1368452194477796145L;
-	private boolean DEBUG = true;
+	private boolean DEBUG = false;
 	
 	public DebuggerTable() {
 		super(new GridLayout(1,0));
@@ -35,23 +35,35 @@ public class DebuggerTable extends JPanel {
 
 		// You can mess with the column names as well as just about anything here it isn't bad.
 		String[] columnNames = {
-			"Program Counter",
-			"Binary",
-			"OPCode",
-			"Register"
+			"Rom Address",
+			"Opcode Hex",
+			"Decoded OPCode",
+			"Reg AF",
+			"Reg BC",
+			"Reg DE",
+			"Reg HL",
+			"Reg SP"
 		};
 
 		// This adjusts to the size of the memory for flexibility as there are several ROMS made for the Gameboy
-		Object[][] data = new Object[mem.size()][4];
+		Object[][] data = new Object[mem.size()][columnNames.length];
+
+		CPU testCPU = new CPU();
 
 		// 1st is the index of the array or "program counter"
 		// Followed by the memory dump of the ROM,
 		// The data for OPCodes when it can be decoded will be next and finally the registers when I get arounnd to it
 		for (int f = 0; f <mem.size(); f++) {
+			testCPU.executeOpcode(Short.parseShort(mem.get(f), 16));
+
 			data[f][0] = Integer.toHexString(f);
 			data[f][1] = mem.get(f);
-			data[f][2] = 0;
-			data[f][3] = 0;
+			data[f][2] = testCPU.current_opcode;
+			data[f][3] = Integer.toHexString(testCPU.regSet.getWord(Reg_16.AF));
+			data[f][4] = Integer.toHexString(testCPU.regSet.getWord(Reg_16.BC));
+			data[f][5] = Integer.toHexString(testCPU.regSet.getWord(Reg_16.DE));
+			data[f][6] = Integer.toHexString(testCPU.regSet.getWord(Reg_16.HL));
+			data[f][7] = Integer.toHexString(testCPU.regSet.getWord(Reg_16.SP));
 		}
 
 		// This is where the dependancy of Jtable comes into place.
@@ -106,7 +118,7 @@ public class DebuggerTable extends JPanel {
 				log += 1;
 
 				// Adding the memory 8 bytes at a time
-				if (log == 4) {
+				if (log == 1) {
 					mem.add(temp);
 					temp = "";
 					log = 0;

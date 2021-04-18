@@ -19,7 +19,7 @@ public class CPU {
   }
 
 //#region ---- ---- ---- ---- ---- Registers ---- ---- ---- ---- ---- ---- ---- ----
-  public RegisterSet regSet;
+  public RegisterSet regSet = new RegisterSet();
 
   // private RegisterSet save0 = new RegisterSet(0, 0, 0, 0, 0, 0);
   // private RegisterSet save1 = new RegisterSet(0, 0, 0, 0, 0, 0);
@@ -156,6 +156,8 @@ public class CPU {
    * @param source
    */
   void LD(Reg_8 destination, Reg_8 source) {
+    if (destination == null || source == null) { return; }
+
     regSet.setByte(destination, regSet.getByte(source));
   }
   
@@ -670,6 +672,8 @@ public class CPU {
   final int P_MASK = 0b00110000;  // Mask for the P portion of the arguments in the Opcode.
   final int Q_MASK = 0b00001000;  // Mask for the Q portion of the arguments in the Opcode.
 
+  public String current_opcode = "not decoded";
+
   /**
    * <p>Decodes and executes the opcode specified in the argument.</p>
    * Slightly Based on:
@@ -691,6 +695,8 @@ public class CPU {
     int z_arg = opcode & Z_MASK;
     int p_arg = (opcode & P_MASK) >> 5;
     int q_arg = (opcode & Q_MASK) >> 4;
+
+    current_opcode = String.format("x: %d, y: %d, z: %d, p: %d, q: %d", x_arg, y_arg, z_arg, p_arg, q_arg);
 
     switch(x_arg) {
       case 0:
@@ -716,28 +722,46 @@ public class CPU {
             break;
           case 4:
             INC(r_args[y_arg]);
+
+            // Updates decoded string for Jframe
+            current_opcode = "INC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)");
             break;
           case 5:
             DEC(r_args[y_arg]);
+
+            // Updates decoded string for Jframe
+            current_opcode = "DEC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)");
             break;
           case 6:
             // LD r[y],n
             break;
           case 7:
             Z7Map.get(z7_args[y_arg]).invoke();
+            
+            // Updates decoded string for Jframe
+            current_opcode = "" + Z7_t.values()[y_arg];
             break;
         }
         break;
       case 1:
         if ((y_arg == 6) && (z_arg == 6)) {
           HALT();
+
+          // Updates decoded string for Jframe
+          current_opcode = "HALT";
         }
         else {
           LD(r_args[y_arg], r_args[z_arg]);
+
+          // Updates decoded string for Jframe
+          current_opcode = "LD " + ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
         }
         return M_CYCLE;
       case 2:
         AluMap.get(alu_args[y_arg]).invoke(r_args[z_arg]);
+
+        // Updates decoded string for Jframe
+        current_opcode = Alu_t.values()[y_arg] + " A, " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
         return M_CYCLE;
       case 3:
         switch(z_arg) {
@@ -785,6 +809,9 @@ public class CPU {
             break;
           case 6:
             AluImMap.get(alu_args[y_arg]).invoke();
+
+            // Updates decoded string for Jframe
+            current_opcode = Alu_t.values()[y_arg] + " A, nn";
             break;
           case 7:
             // RST y*8
@@ -813,9 +840,12 @@ public class CPU {
     int y_arg = (opcode & Y_MASK) >> 3;
     int z_arg = opcode & Z_MASK;
 
+    current_opcode = String.format("Extended Opcode... x: %d, y: %d, z: %d", x_arg, y_arg, z_arg);
+
     switch(x_arg) {
       case 0 :
         RotMap.get(rot_args[y_arg]).invoke(r_args[z_arg]);
+        current_opcode = Rot_t.values()[y_arg] + " , " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
         return M_CYCLE*2;
 
       case 1 :
