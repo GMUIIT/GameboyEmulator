@@ -160,6 +160,13 @@ public class CPU {
 
     regSet.setByte(destination, regSet.getByte(source));
   }
+
+  /**
+   * 
+   */
+  void LD_I(Reg_8 destination) {
+
+  }
   
   /**
    * 
@@ -192,14 +199,14 @@ public class CPU {
   /**
    * 
    */
-  void POP() {
+  void POP(Reg_16 destination) {
 
   }
   
   /**
    * 
    */
-  void PUSH() {
+  void PUSH(Reg_16 source) {
 
   }
 
@@ -663,7 +670,7 @@ public class CPU {
   //#endregion
 //#endregion
 
-//#region ---- ---- ---- ---- ---- Misc. CPU Functions ---- ---- ---- ---- ---- ----
+//#region ---- ---- ---- ---- ----   Opcode Decoding   ---- ---- ---- ---- ---- ----
 
   final int M_CYCLE = 4;          // Clock cycle for a single-byte operation in the Gameboy
   final int X_MASK = 0b11000000;  // Mask for the X portion of the arguments in the Opcode.
@@ -673,6 +680,145 @@ public class CPU {
   final int Q_MASK = 0b00001000;  // Mask for the Q portion of the arguments in the Opcode.
 
   public String current_opcode = "not decoded";
+  
+  /**
+   * 
+   * @param y_arg
+   * @param z_arg
+   * @param p_arg
+   * @param q_arg
+   * @return
+   */
+  public int x0_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
+    switch(z_arg) {
+      case 0:
+        switch(y_arg) {
+          case 0: NOP(); return M_CYCLE;
+          case 1: /* LD (nn),SP */ return M_CYCLE;
+          case 2: STOP(); return M_CYCLE;
+          case 3: /* JR d */ return M_CYCLE;
+          default: /* JR cc[y-4],d */ return M_CYCLE;
+        }
+      case 1:
+        if (q_arg == 0) {
+          /* LD rp[p],nn */ return M_CYCLE;
+        }
+        else {
+          /* ADD HL, rp[p] */ return M_CYCLE;
+        }
+        break;
+      case 2:
+        if (q_arg == 0) {
+          // LD (BC), A
+          // LD (DE), A
+          // LDI (HL), A
+          // LDD (HL), A
+        } else {
+          // LD A, (BC)
+          // LD A, (DE)
+          // LDI A, (HL)
+          // LDD A, (HL)
+        }
+        break;
+      case 3:
+        if (q_arg == 0) {
+          INC_16(rp_args[p_arg]);  current_opcode = "INC " + rp_args[p_arg]; return M_CYCLE;
+        } else {
+          DEC_16(rp_args[p_arg]);  current_opcode = "DEC " + rp_args[p_arg]; return M_CYCLE;
+        }
+      case 4:  INC(r_args[y_arg]); current_opcode = "INC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)"); return M_CYCLE;
+      case 5:  DEC(r_args[y_arg]); current_opcode = "DEC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)"); return M_CYCLE;
+      case 6: LD_I(r_args[y_arg]); current_opcode = "LD "  + ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " + "n"; return M_CYCLE;
+      case 7: Z7Map.get(z7_args[y_arg]).invoke(); current_opcode = "" + Z7_t.values()[y_arg]; return M_CYCLE;
+    }
+    return 0;
+  }
+
+  /**
+   * 
+   * @param y_arg
+   * @param z_arg
+   * @param p_arg
+   * @param q_arg
+   * @return
+   */
+  public int x1_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
+    if ((y_arg == 6) && (z_arg == 6)) { HALT(); current_opcode = "HALT"; return M_CYCLE; }
+    else {
+      LD(r_args[y_arg], r_args[z_arg]);
+
+      current_opcode = "LD " +
+      ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " +
+      ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
+      return M_CYCLE;
+    }
+  }
+
+  /**
+   * 
+   * @param y_arg
+   * @param z_arg
+   * @param p_arg
+   * @param q_arg
+   * @return
+   */
+  public int x2_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
+    AluMap.get(alu_args[y_arg]).invoke(r_args[z_arg]);
+    current_opcode = Alu_t.values()[y_arg] + " A, " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
+    return M_CYCLE;
+  }
+
+  /**
+   * 
+   * @param y_arg
+   * @param z_arg
+   * @param p_arg
+   * @param q_arg
+   * @return
+   */
+  public int x3_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
+    switch(z_arg) {
+      case 0:
+        if (y_arg < 4) { /* RET cc[y] */ return M_CYCLE; }
+        else {
+          // LDH (n), A
+          // ADD SP,d
+          // LDH A, (n)
+          // LDHL SP, n
+          return M_CYCLE;
+        }
+      case 1:
+        if (q_arg == 0) { POP(rp2_args[p_arg]); current_opcode = "POP " + rp2_args[p_arg]; return M_CYCLE; }
+        else {
+          switch(p_arg) {
+            case 0: /* RET */ return M_CYCLE;
+            case 1: /* RETI */ return M_CYCLE;
+            case 2: /* JP HL */ return M_CYCLE;
+            case 3: /* LD SP, HL */ return M_CYCLE;
+          }
+        }
+      case 2:
+        if (y_arg < 4) { /* JP cc[y], nn */ return M_CYCLE; }
+        else {
+          // LD (0xFF00+C),A
+          // LD (nn),A
+          // LD A,(0xFF00+C)
+          // LD A,(nn)
+          return M_CYCLE;
+        }
+      case 3:
+        if (y_arg == 0) { /* JP nn*/ return M_CYCLE; }
+        else if (y_arg == 6) { DI(); current_opcode = "DI"; return M_CYCLE; }
+        else if (y_arg == 7) { EI(); current_opcode = "EI"; return M_CYCLE; }
+      case 4: /* Call cc[y], nn */ return M_CYCLE;
+      case 5:
+        if (q_arg == 0) { PUSH(rp2_args[p_arg]); current_opcode = "PUSH " + rp2_args[p_arg]; return M_CYCLE; }
+        else { /* Call nn */ return M_CYCLE; }
+      case 6: AluImMap.get(alu_args[y_arg]).invoke(); current_opcode = Alu_t.values()[y_arg] + " A, nn"; return M_CYCLE;
+      case 7: /* RST y*8 */ return M_CYCLE;
+    }
+    return 0;
+  }
 
   /**
    * <p>Decodes and executes the opcode specified in the argument.</p>
@@ -686,138 +832,22 @@ public class CPU {
    * @return Clock cycles needed for the operation
    */
   public int executeOpcode(short opcode) {
-
     // CB-prefixed opcodes
     if (opcode == 0xCB) { return executeExtendedOpcode(); }
 
     int x_arg = (opcode & X_MASK) >> 6;
     int y_arg = (opcode & Y_MASK) >> 3;
-    int z_arg = opcode & Z_MASK;
+    int z_arg = (opcode & Z_MASK);
     int p_arg = (opcode & P_MASK) >> 5;
     int q_arg = (opcode & Q_MASK) >> 4;
 
     current_opcode = String.format("x: %d, y: %d, z: %d, p: %d, q: %d", x_arg, y_arg, z_arg, p_arg, q_arg);
 
     switch(x_arg) {
-      case 0:
-        switch(z_arg) {
-          case 0:
-            // NOP
-            // LD (nn),SP
-            // STOP
-            // JR d
-            // JR cc[y-4],d
-            break;
-          case 1:
-            // Q = 0, LD rp[p],nn
-            // Q = 1, ADD HL, rp[p]
-            break;
-          case 2:
-            // Q = 0, LD (??),A
-            // Q = 1, LD A,(??)
-            break;
-          case 3:
-            // Q = 0  INC rp[p]
-            // Q = 1  DEC rp[p]
-            break;
-          case 4:
-            INC(r_args[y_arg]);
-
-            // Updates decoded string for Jframe
-            current_opcode = "INC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)");
-            break;
-          case 5:
-            DEC(r_args[y_arg]);
-
-            // Updates decoded string for Jframe
-            current_opcode = "DEC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)");
-            break;
-          case 6:
-            // LD r[y],n
-            break;
-          case 7:
-            Z7Map.get(z7_args[y_arg]).invoke();
-            
-            // Updates decoded string for Jframe
-            current_opcode = "" + Z7_t.values()[y_arg];
-            break;
-        }
-        break;
-      case 1:
-        if ((y_arg == 6) && (z_arg == 6)) {
-          HALT();
-
-          // Updates decoded string for Jframe
-          current_opcode = "HALT";
-        }
-        else {
-          LD(r_args[y_arg], r_args[z_arg]);
-
-          // Updates decoded string for Jframe
-          current_opcode = "LD " + ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
-        }
-        return M_CYCLE;
-      case 2:
-        AluMap.get(alu_args[y_arg]).invoke(r_args[z_arg]);
-
-        // Updates decoded string for Jframe
-        current_opcode = Alu_t.values()[y_arg] + " A, " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
-        return M_CYCLE;
-      case 3:
-        switch(z_arg) {
-          case 0:
-            // RET cc[0],nn
-            // RET cc[1],nn
-            // RET cc[2],nn
-            // RET cc[3],nn
-            // LD (0xFF00+n),A
-            // ADD SP,d
-            // LD A,(0xFF00+n)
-            // LD HL,SP+ d
-            break;
-          case 1:
-            // Q = 0  POP rp2[p]
-            // Q = 1, 
-              // P0 = RET
-              // P1 = RETI
-              // P2 = JP HL
-              // P3 = LD SP, HL
-            break;
-          case 2:
-            // JP cc[0],nn
-            // JP cc[1],nn
-            // JP cc[2],nn
-            // JP cc[3],nn
-            // LD (0xFF00+C),A
-            // LD (nn),A
-            // LD A,(0xFF00+C)
-            // LD A,(nn)
-            break;
-          case 3:
-            // y=0 JP
-            // CB?
-            // n/a, n/a, n/a, n/a
-            // DI
-            // EI
-            break;
-          case 4:
-            // Call cc[y], nn
-            break;
-          case 5:
-            // Q = 0  PUSH rp2[p]
-            // Q = 1, Call nn
-            break;
-          case 6:
-            AluImMap.get(alu_args[y_arg]).invoke();
-
-            // Updates decoded string for Jframe
-            current_opcode = Alu_t.values()[y_arg] + " A, nn";
-            break;
-          case 7:
-            // RST y*8
-            break;
-        }
-        break;
+      case 0: return x0_Opcodes(y_arg, z_arg, p_arg, q_arg);
+      case 1: return x1_Opcodes(y_arg, z_arg, p_arg, q_arg);
+      case 2: return x2_Opcodes(y_arg, z_arg, p_arg, q_arg);
+      case 3: return x3_Opcodes(y_arg, z_arg, p_arg, q_arg);
       default:    // Undefined
         System.out.println("Opcode is undefined!");
         break;
@@ -838,7 +868,7 @@ public class CPU {
 
     int x_arg = (opcode & X_MASK) >> 6;
     int y_arg = (opcode & Y_MASK) >> 3;
-    int z_arg = opcode & Z_MASK;
+    int z_arg = (opcode & Z_MASK);
 
     current_opcode = String.format("Extended Opcode... x: %d, y: %d, z: %d", x_arg, y_arg, z_arg);
 
@@ -847,18 +877,9 @@ public class CPU {
         RotMap.get(rot_args[y_arg]).invoke(r_args[z_arg]);
         current_opcode = Rot_t.values()[y_arg] + " , " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
         return M_CYCLE*2;
-
-      case 1 :
-        BIT(y_arg, r_args[z_arg]);
-        return M_CYCLE*2;
-
-      case 2:
-        RES(y_arg, r_args[z_arg]);
-        return M_CYCLE*2;
-
-      case 3:
-        SET(y_arg, r_args[z_arg]);
-        return M_CYCLE*2;
+      case 1: BIT(y_arg, r_args[z_arg]); return M_CYCLE*2;
+      case 2: RES(y_arg, r_args[z_arg]); return M_CYCLE*2;
+      case 3: SET(y_arg, r_args[z_arg]); return M_CYCLE*2;
 
       default:
         //assert(false);
