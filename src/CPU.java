@@ -32,10 +32,6 @@ public class CPU {
   
   /**
    * Argument modifiers for Jump Instructions specifying certain conditions to jump.
-   * NZ = no zero
-   * Z = zero
-   * NC = no Carry
-   * C = Carry
    */
   enum CC_t {
     NZ, Z, NC, C;
@@ -47,14 +43,6 @@ public class CPU {
 
   /**
    * ALU operation types for 8-bit ALU operations.
-   * ADD = Add instruction
-   * ADC = Add instruction with carry
-   * SUB = Subtraction instruction
-   * SBC = Subtraction instruction with carry
-   * AND = And instruction
-   * XOR = XOR instruction
-   * OR  = Or instruction
-   * CP  = Compare instruction
    */
   enum Alu_t {
     ADD, ADC, SUB, SBC, AND, XOR, OR, CP;
@@ -65,7 +53,7 @@ public class CPU {
   }
 
   /**
-   * 
+   * Roll/shift register commands
    */
   enum Rot_t {
     RLC, RRC, RL, RR, SLA, SRA, SWAP, SRL;
@@ -76,7 +64,7 @@ public class CPU {
   }
 
   /**
-   * 
+   * Assorted operations on accumulator/flags
    */
   enum Z7_t {
     RLCA, RRCA, RLA, RRA, DAA, CPL, SCF, CCF;
@@ -909,7 +897,7 @@ public class CPU {
             case 4: LD_C(false); current_opcode = "LD (0xFF00+C),A"; return M_CYCLE;
             case 5: LD_A(false); current_opcode = "LD (nn),A"; return M_CYCLE;
             case 6: LD_C(true); current_opcode = "LD A,(0xFF00+C)"; return M_CYCLE;
-            case 7: LD_A(false); current_opcode = "LD A,(nn)"; return M_CYCLE;
+            case 7: LD_A(true); current_opcode = "LD A,(nn)"; return M_CYCLE;
             default: return M_CYCLE;
           }
         }
