@@ -148,40 +148,24 @@ public class RegisterSet {
 
   //#region ---- ---- ---- ---- ---- Flag Methods
 
-  /**
-   * Sets the zero flag in the F register
-   */
+  // Methods for the zero flag in the F register
+  public boolean getZeroFlag() { return (getByte(Reg_8.F) & 0x80) > 0; }
   public void setZeroFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x80); }
-  /**
-   * clears the zero flag in the F register
-   */
   public void clearZeroFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x80); }
 
-  /**
-   * Sets the Negative flag in the F register
-   */
+  // Methods for the Negative flag in the F register
+  public boolean getNegativeFlag() { return (getByte(Reg_8.F) & 0x40) > 0; }
   public void setNegativeFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x40); }
-  /**
-   * Clears the Negative flag in the F register
-   */
   public void clearNegativeFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x40); }
 
-  /**
-   * Sets the Half-Carry flag in the F register
-   */
+  // Methods for the Half-Carry flag in the F register
+  public boolean getHalfCarryFlag() { return (getByte(Reg_8.F) & 0x20) > 0; }
   public void setHalfCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x20); }
-  /**
-   * Clears the Half-Carry flag in the F register
-   */
   public void clearHalfCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x20); }
 
-  /**
-   * Sets the Carry flag in the F register
-   */
+  // Methods for the Carry flag in the F register
+  public boolean getCarryFlag() { return (getByte(Reg_8.F) & 0x80) > 0; }
   public void setCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x10); }
-  /**
-   * Clears the carry flag in the F register
-   */
   public void clearCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x10); }
 
   //#endregion

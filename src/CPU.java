@@ -116,14 +116,14 @@ public class CPU {
     AluMap.put(Alu_t.SUB, (source) -> SUB(source));
     AluMap.put(Alu_t.XOR, (source) -> XOR(source));
 
-    AluImMap.put(Alu_t.ADC, () -> ADC_I());
-    AluImMap.put(Alu_t.ADD, () -> ADD_I());
-    AluImMap.put(Alu_t.AND, () -> AND_I());
-    AluImMap.put(Alu_t.CP,  () -> CP_I());
-    AluImMap.put(Alu_t.OR,  () -> OR_I());
-    AluImMap.put(Alu_t.SBC, () -> SBC_I());
-    AluImMap.put(Alu_t.SUB, () -> SUB_I());
-    AluImMap.put(Alu_t.XOR, () -> XOR_I());
+    AluImMap.put(Alu_t.ADC, () -> ADC_IM());
+    AluImMap.put(Alu_t.ADD, () -> ADD_IM());
+    AluImMap.put(Alu_t.AND, () -> AND_IM());
+    AluImMap.put(Alu_t.CP,  () -> CP_IM());
+    AluImMap.put(Alu_t.OR,  () -> OR_IM());
+    AluImMap.put(Alu_t.SBC, () -> SBC_IM());
+    AluImMap.put(Alu_t.SUB, () -> SUB_IM());
+    AluImMap.put(Alu_t.XOR, () -> XOR_IM());
 
     Z7Map.put(Z7_t.RLCA, () -> RLCA());
     Z7Map.put(Z7_t.RRCA, () -> RRCA());
@@ -162,35 +162,88 @@ public class CPU {
   }
 
   /**
-   * 
+   * Loads a value from an 8-bit register to another register
+   * @param destination
+   * @param source
    */
-  void LD_I(Reg_8 destination) {
+  void LD_16(Reg_16 destination, Reg_16 source) {
+    if (destination == null || source == null) { return; }
+
+    regSet.setWord(destination, regSet.getWord(source));
+  }
+
+  /**
+   * Indirect loading
+   * @param register
+   * @param isAdest controls whether A is the destination or not
+   */
+  void LD_IN(Reg_16 register, boolean isAdest) {
+
+  }
+
+  /**
+   * 8-bit load immediate
+   * @param destination
+   */
+  void LD_IM(Reg_8 destination) {
+
+  }
+
+  /**
+   * Put A into address $FF00 + register C, or put value at
+   * memory address $FF00 + register C to register A.
+   * @param isAdest
+   */
+  void LD_C(boolean isAdest) {
+
+  }
+
+  /**
+   * Put value A into memory address at nn, or put value at
+   * memory address to register A.
+   * @param isAdest
+   */
+  void LD_A(boolean isAdest) {
+
+  }
+
+  /**
+   * 16-bit load immediate
+   * @param destination
+   * @param isdest
+   */
+  void LD_16_IM(Reg_16 register, boolean isdest) {
 
   }
   
   /**
-   * 
+   * Load value at address (HL)/A into A/(HL). Increment HL.
+   * @param register
+   * @param isAdest controls whether A is the destination or not
    */
-  void LDD() {
-
-  }
-  
-  /**
-   * 
-   */
-  void LDH() {
-
-  }
-  
-  /**
-   * 
-   */
-  void LDI() {
-
+  void LDI(Reg_16 register, boolean isAdest) {
+    
   }
 
   /**
-   * 
+   * Load value at address (HL)/A into A/(HL). Decrement HL.
+   * @param register
+   * @param isAdest controls whether A is the destination or not
+   */
+  void LDD(Reg_16 register, boolean isAdest) {
+
+  }
+    
+  /**
+   * Put A into memory address $FF00+n, or Put memory address $FF00+n into A.
+   * @param isAdest controls whether A is the destination or not
+   */
+  void LDH(boolean isAdest) {
+
+  }
+
+  /**
+   * Put SP + n effective address into HL.
    */
   void LDHL() {
 
@@ -226,7 +279,7 @@ public class CPU {
   /**
    * 
    */
-  void ADC_I() {
+  void ADC_IM() {
 
   }
 
@@ -255,21 +308,21 @@ public class CPU {
   /**
    * 
    */
-  void ADD_I() {
+  void ADD_IM() {
 
   }
 
   /**
    * 
    */
-  void ADD_I_16() {
+  void ADD_HL(Reg_16 source) {
 
   }
 
   /**
    * 
    */
-  void ADD_16() {
+  void ADD_SP() {
 
   }
 
@@ -286,7 +339,7 @@ public class CPU {
   /**
    * 
    */
-  void SUB_I() {
+  void SUB_IM() {
 
   }
 
@@ -303,7 +356,7 @@ public class CPU {
   /**
    * 
    */
-  void SBC_I() {
+  void SBC_IM() {
 
   }
   
@@ -320,7 +373,7 @@ public class CPU {
   /**
    * 
    */
-  void AND_I() {
+  void AND_IM() {
 
   }
 
@@ -337,7 +390,7 @@ public class CPU {
   /**
    * 
    */
-  void OR_I() {
+  void OR_IM() {
 
   }
 
@@ -354,7 +407,7 @@ public class CPU {
   /**
    * 
    */
-  void XOR_I() {
+  void XOR_IM() {
 
   }
 
@@ -371,7 +424,7 @@ public class CPU {
   /**
    * 
    */
-  void CP_I() {
+  void CP_IM() {
 
   }
 
@@ -614,16 +667,46 @@ public class CPU {
   //#region ---- ---- ---- ---- ---- Jump Opcodes
 
   /**
-   * 
+   * Jump to address at nn.
    */
   void JP() {
+    short operand = 0; // Ideally read from memory to get the address?
+    regSet.setPC(operand);
+  }
 
+  /**
+   * Jump to address at nn if the flag condition is true
+   * @param flag_condition
+   */
+  void JP_CC(CC_t flag_condition) {
+    short operand = 0; // Ideally read from memory to get the address?
+    switch(flag_condition) {
+      case NZ: if (!regSet.getZeroFlag()) regSet.setPC(operand); break;
+      case Z:  if (regSet.getZeroFlag()) regSet.setPC(operand); break;
+      case NC: if (!regSet.getCarryFlag()) regSet.setPC(operand); break;
+      case C:  if (regSet.getCarryFlag()) regSet.setPC(operand); break;
+    }
+  }
+
+  /**
+   * Jump to address contained in HL.
+   */
+  void JP_HL() {
+    regSet.setPC(regSet.getWord(Reg_16.HL));
   }
   
   /**
-   * 
+   * Add n to current address and jump to it.
    */
   void JR() {
+
+  }
+
+  /**
+   * Add n to current address and jump to it, if the flag condition is true.
+   * @param flag_condition
+   */
+  void JR_CC(CC_t flag_condition) {
 
   }
 
@@ -632,9 +715,18 @@ public class CPU {
   //#region ---- ---- ---- ---- ---- Call Opcodes
 
   /**
-   * 
+   * Push address of next instruction onto stack and then jump to address nn.
    */
   void CALL() {
+
+  }
+
+  /**
+   * Push address of next instruction onto stack and then jump to address nn,
+   * if the flag condition is true.
+   * @param flag_condition
+   */
+  void CALL_CC(CC_t flag_condition) {
 
   }
 
@@ -643,9 +735,10 @@ public class CPU {
   //#region ---- ---- ---- ---- ---- Restart Opcodes
 
   /**
-   * 
+   * Push present address onto stack. Jump to address $0000 + n.
+   * @param n
    */
-  void RST() {
+  void RST(int n) {
 
   }
 
@@ -654,14 +747,23 @@ public class CPU {
   //#region ---- ---- ---- ---- ---- Return Opcodes
 
   /**
-   * 
+   * Pop two bytes from stack & jump to that address.
    */
   void RET() {
 
   }
+
+  /**
+   * Pop two bytes from stack & jump to that address,
+   * if the flag condition is true.
+   * @param flag_condition
+   */
+  void RET_CC(CC_t flag_condition) {
+
+  }
   
   /**
-   * 
+   * Pop two bytes from stack & jump to that address, then enable interrupts.
    */
   void RETI() {
 
@@ -693,31 +795,33 @@ public class CPU {
     switch(z_arg) {
       case 0:
         switch(y_arg) {
-          case 0: NOP(); return M_CYCLE;
-          case 1: /* LD (nn),SP */ return M_CYCLE;
-          case 2: STOP(); return M_CYCLE;
-          case 3: /* JR d */ return M_CYCLE;
-          default: /* JR cc[y-4],d */ return M_CYCLE;
+          case 0: NOP(); current_opcode = "NOP"; return M_CYCLE;
+          case 1: LD_16_IM(Reg_16.SP, false); current_opcode = "LD (nn), SP"; return M_CYCLE;
+          case 2: STOP(); current_opcode = "STOP"; return M_CYCLE;
+          case 3: JR(); current_opcode = "JR"; return M_CYCLE;
+          default: JR_CC(cc_args[y_arg-4]); current_opcode = "JR " + cc_args[y_arg-4] + ", d"; return M_CYCLE;
         }
       case 1:
         if (q_arg == 0) {
-          /* LD rp[p],nn */ return M_CYCLE;
+          LD_16_IM(rp_args[p_arg], true); current_opcode = "LD " + rp_args[p_arg] + ", nn"; return M_CYCLE;
+        } else {
+          ADD_HL(rp_args[p_arg]); current_opcode = "ADD HL, " + rp_args[p_arg]; return M_CYCLE;
         }
-        else {
-          /* ADD HL, rp[p] */ return M_CYCLE;
-        }
-        break;
       case 2:
         if (q_arg == 0) {
-          // LD (BC), A
-          // LD (DE), A
-          // LDI (HL), A
-          // LDD (HL), A
+          switch(p_arg) {
+            case 0: LD_IN(Reg_16.BC, false); current_opcode = "LD (BC), A"; break;
+            case 1: LD_IN(Reg_16.DE, false); current_opcode = "LD (BC), A"; break;
+            case 2:   LDI(Reg_16.HL, false); current_opcode = "LDI (HL+), A"; break;
+            case 3:   LDD(Reg_16.HL, false); current_opcode = "LDD (HL-), A"; break;
+          }
         } else {
-          // LD A, (BC)
-          // LD A, (DE)
-          // LDI A, (HL)
-          // LDD A, (HL)
+          switch(p_arg) {
+            case 0: LD_IN(Reg_16.BC, true); current_opcode = "LD A, (BC)"; break;
+            case 1: LD_IN(Reg_16.DE, true); current_opcode = "LD A, (DE)"; break;
+            case 2:   LDI(Reg_16.HL, true); current_opcode = "LDI A, (HL)"; break;
+            case 3:   LDD(Reg_16.HL, true); current_opcode = "LDD A, (HL)"; break;
+          }
         }
         break;
       case 3:
@@ -726,9 +830,9 @@ public class CPU {
         } else {
           DEC_16(rp_args[p_arg]);  current_opcode = "DEC " + rp_args[p_arg]; return M_CYCLE;
         }
-      case 4:  INC(r_args[y_arg]); current_opcode = "INC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)"); return M_CYCLE;
-      case 5:  DEC(r_args[y_arg]); current_opcode = "DEC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)"); return M_CYCLE;
-      case 6: LD_I(r_args[y_arg]); current_opcode = "LD "  + ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " + "n"; return M_CYCLE;
+      case 4:   INC(r_args[y_arg]); current_opcode = "INC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)"); return M_CYCLE;
+      case 5:   DEC(r_args[y_arg]); current_opcode = "DEC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)"); return M_CYCLE;
+      case 6: LD_IM(r_args[y_arg]); current_opcode = "LD "  + ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " + "n"; return M_CYCLE;
       case 7: Z7Map.get(z7_args[y_arg]).invoke(); current_opcode = "" + Z7_t.values()[y_arg]; return M_CYCLE;
     }
     return 0;
@@ -779,43 +883,47 @@ public class CPU {
   public int x3_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
     switch(z_arg) {
       case 0:
-        if (y_arg < 4) { /* RET cc[y] */ return M_CYCLE; }
+        if (y_arg < 4) { RET_CC(cc_args[y_arg]); current_opcode = "RET " + cc_args[y_arg]; return M_CYCLE; }
         else {
-          // LDH (n), A
-          // ADD SP,d
-          // LDH A, (n)
-          // LDHL SP, n
-          return M_CYCLE;
+          switch(y_arg) {
+            case 0: LDH(false); current_opcode = "LDH (n), A"; return M_CYCLE;
+            case 1: ADD_SP(); current_opcode = "ADD SP, d"; return M_CYCLE;
+            case 2: LDH(true); current_opcode = "LDH A, (n)"; return M_CYCLE;
+            case 3: LDHL(); current_opcode = "LDHL SP, n"; return M_CYCLE;
+          }
         }
       case 1:
         if (q_arg == 0) { POP(rp2_args[p_arg]); current_opcode = "POP " + rp2_args[p_arg]; return M_CYCLE; }
         else {
           switch(p_arg) {
-            case 0: /* RET */ return M_CYCLE;
-            case 1: /* RETI */ return M_CYCLE;
-            case 2: /* JP HL */ return M_CYCLE;
-            case 3: /* LD SP, HL */ return M_CYCLE;
+            case 0: RET(); current_opcode = "RET"; return M_CYCLE;
+            case 1: RETI(); current_opcode = "RETI"; return M_CYCLE;
+            case 2: JP_HL(); current_opcode = "JP (HL)"; return M_CYCLE;
+            case 3: LD_16(Reg_16.SP, Reg_16.HL); current_opcode = "LD SP, HL"; return M_CYCLE;
           }
         }
       case 2:
-        if (y_arg < 4) { /* JP cc[y], nn */ return M_CYCLE; }
+        if (y_arg < 4) { JP_CC(cc_args[y_arg]); current_opcode = "JP " + cc_args[y_arg] + ", nn"; return M_CYCLE; }
         else {
-          // LD (0xFF00+C),A
-          // LD (nn),A
-          // LD A,(0xFF00+C)
-          // LD A,(nn)
-          return M_CYCLE;
+          switch(y_arg) {
+            case 4: LD_C(false); current_opcode = "LD (0xFF00+C),A"; return M_CYCLE;
+            case 5: LD_A(false); current_opcode = "LD (nn),A"; return M_CYCLE;
+            case 6: LD_C(true); current_opcode = "LD A,(0xFF00+C)"; return M_CYCLE;
+            case 7: LD_A(false); current_opcode = "LD A,(nn)"; return M_CYCLE;
+            default: return M_CYCLE;
+          }
         }
       case 3:
-        if (y_arg == 0) { /* JP nn*/ return M_CYCLE; }
+        if (y_arg == 0) { JP(); current_opcode = "JP nn" ; return M_CYCLE; }
         else if (y_arg == 6) { DI(); current_opcode = "DI"; return M_CYCLE; }
         else if (y_arg == 7) { EI(); current_opcode = "EI"; return M_CYCLE; }
-      case 4: /* Call cc[y], nn */ return M_CYCLE;
+      case 4: 
+        if (y_arg < 4) { CALL_CC(cc_args[y_arg]); current_opcode = "Call " + cc_args[y_arg] + ", nn"; return M_CYCLE; }
       case 5:
         if (q_arg == 0) { PUSH(rp2_args[p_arg]); current_opcode = "PUSH " + rp2_args[p_arg]; return M_CYCLE; }
-        else { /* Call nn */ return M_CYCLE; }
+        else { CALL(); current_opcode = "CALL nn"; return M_CYCLE; }
       case 6: AluImMap.get(alu_args[y_arg]).invoke(); current_opcode = Alu_t.values()[y_arg] + " A, nn"; return M_CYCLE;
-      case 7: /* RST y*8 */ return M_CYCLE;
+      case 7: RST(y_arg*8); current_opcode = "RST " + String.format("%x", y_arg*8); return M_CYCLE;
     }
     return 0;
   }
@@ -838,8 +946,8 @@ public class CPU {
     int x_arg = (opcode & X_MASK) >> 6;
     int y_arg = (opcode & Y_MASK) >> 3;
     int z_arg = (opcode & Z_MASK);
-    int p_arg = (opcode & P_MASK) >> 5;
-    int q_arg = (opcode & Q_MASK) >> 4;
+    int p_arg = (opcode & P_MASK) >> 4;
+    int q_arg = (opcode & Q_MASK) >> 3;
 
     current_opcode = String.format("x: %d, y: %d, z: %d, p: %d, q: %d", x_arg, y_arg, z_arg, p_arg, q_arg);
 
@@ -864,7 +972,7 @@ public class CPU {
     short opcode = 0;
 
     //short opcode = ReadMemory(m_ProgramCounter) ;
-    //m_ProgramCounter++;
+    regSet.setPC(regSet.getPC() + 1);
 
     int x_arg = (opcode & X_MASK) >> 6;
     int y_arg = (opcode & Y_MASK) >> 3;
@@ -893,9 +1001,9 @@ public class CPU {
    */
   int executeNextOpcode() {
     int res = 0;
-    //short opcode = ReadMemory(m_ProgramCounter);
-    //m_ProgramCounter++;
-    //res = ExecuteOpcode(opcode);
+    short opcode = 0;//ReadMemory(m_ProgramCounter);
+    regSet.setPC(regSet.getPC() + 1);
+    res =	executeOpcode(opcode);
     return res ;
   }
 
