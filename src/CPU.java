@@ -260,8 +260,20 @@ public class CPU {
    */
   void ADC(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
-    
-    // Code goes here!
+    int result = regSet.getA() + value + (regSet.getCarryFlag() ? 1 : 0);
+    int before = regSet.getA();
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if ((result & 0xFF00) > 0) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x0F) + (value & 0x0F)) > 0x0F) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.setA(result & 0xFF);
   }
 
   /**
@@ -278,19 +290,19 @@ public class CPU {
   void ADD(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
     int result = regSet.getA() + value;
+    int before = regSet.getA();
 
-    regSet.setA(result & 0xFF);
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
 
     if ((result & 0xFF00) > 0) regSet.setCarryFlag();
     else regSet.clearCarryFlag();
 
-    if (result > 0) regSet.clearZeroFlag();
-    else regSet.setZeroFlag();
-
-    if (((result & 0x0F) + (value & 0x0F)) > 0x0F) regSet.setHalfCarryFlag();
+    if (((before & 0x0F) + (value & 0x0F)) > 0x0F) regSet.setHalfCarryFlag();
     else regSet.clearHalfCarryFlag();
 
     regSet.clearNegativeFlag();
+    regSet.setA(result & 0xFF);
   }
 
   /**
@@ -304,7 +316,18 @@ public class CPU {
    * 
    */
   void ADD_HL(Reg_16 source) {
+    int value = regSet.getWord(source);
+    int result = regSet.getWord(Reg_16.HL) + value;
+    int before = regSet.getWord(Reg_16.HL);
 
+    if ((result & 0xF0000) > 0) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x00FF) + (value & 0x00FF)) > 0x00FF) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.setWord(Reg_16.HL, result);
   }
 
   /**
@@ -320,8 +343,20 @@ public class CPU {
    */
   void SUB(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
-    
-    // Code goes here!
+    int result = regSet.getA() - value;
+    int before = regSet.getA();
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if (value > before) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x0F) - (value & 0x0F)) < 0) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.setNegativeFlag();
+    regSet.setA(result & 0xFF);
   }
 
   /**
@@ -337,8 +372,20 @@ public class CPU {
    */
   void SBC(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
-    
-    // Code goes here!
+    int result = regSet.getA() - value + (regSet.getCarryFlag() ? 1 : 0);
+    int before = regSet.getA();
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if (value > before) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x0F) - (value & 0x0F)) < 0) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.setNegativeFlag();
+    regSet.setA(result & 0xFF);
   }
 
   /**
@@ -354,8 +401,16 @@ public class CPU {
    */
   void AND(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
-    
-    // Code goes here!
+    int result = regSet.getA() & value;
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.clearCarryFlag();
+    regSet.setHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
   }
 
   /**
@@ -371,8 +426,16 @@ public class CPU {
    */
   void OR(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
-    
-    // Code goes here!
+    int result = regSet.getA() | value;
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.clearCarryFlag();
+    regSet.clearHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
   }
 
   /**
@@ -388,8 +451,16 @@ public class CPU {
    */
   void XOR(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
-    
-    // Code goes here!
+    int result = regSet.getA() ^ value;
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.clearCarryFlag();
+    regSet.clearHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
   }
 
   /**
@@ -405,8 +476,19 @@ public class CPU {
    */
   void CP(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
-    
-    // Code goes here!
+    int result = regSet.getA() - value + (regSet.getCarryFlag() ? 1 : 0);
+    int before = regSet.getA();
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if (value > before) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x0F) - (value & 0x0F)) < 0) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.setNegativeFlag();
   }
 
   /**
@@ -421,7 +503,17 @@ public class CPU {
    * @param source
    */
   void INC(Reg_8 source) {
-    
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = ++value;
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if ((result & 0xF0) > 0) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.clearNegativeFlag();
+    if (source != null) { regSet.setByte(source, result & 0xFF); }
   }
 
   /**
@@ -429,7 +521,10 @@ public class CPU {
    * @param source
    */
   void INC_16(Reg_16 source) {
-    
+    int value = regSet.getWord(source);
+    int result = ++value;
+
+    regSet.setWord(source, result);
   }
 
   /**
@@ -437,7 +532,17 @@ public class CPU {
    * @param source
    */
   void DEC(Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = --value;
 
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if ((result & 0x0F) < 0) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.setNegativeFlag();
+    if (source != null) { regSet.setByte(source, result & 0xFF); }
   }
 
   /**
@@ -445,7 +550,10 @@ public class CPU {
    * @param source
    */
   void DEC_16(Reg_16 source) {
+    int value = regSet.getWord(source);
+    int result = --value;
 
+    regSet.setWord(source, result);
   }
 
   //#endregion
@@ -996,4 +1104,107 @@ public class CPU {
   }
 
   //#endregion
+
+//#region ---- ---- ---- ---- ----  Opcode Tester Programs  ---- ---- ---- ---- ----
+
+  /**
+   * Tests 8-bit ALU commands on every register.
+   * @param ALU_opcode r_args value of the opcode
+   */
+  public void alu_tests(int ALU_opcode) {
+    
+    // Loops through every 8-bit register that can be an argument
+    for (int j = 0; j < 7; j++) {
+      System.out.println("\n\nRegisters before instruction:");
+      System.out.println(regSet);
+
+      // Encodes the instruction to the proper format: alu[y], r[z]
+      int instruction = 0b10000000 + (Y_MASK & (ALU_opcode << 3)) + (Z_MASK & j);
+
+      // Runs the opcode and returns how many M-cycles it took
+      int clockCycles = executeOpcode((short)instruction);
+      
+      System.out.println("Current instruction: " + current_opcode);
+      System.out.printf("Results:\nA: 0x%02x\n", regSet.getByte(Reg_8.A));
+      System.out.println(regSet.getFlags());
+      System.out.println("Clock cycles took: " + (clockCycles/4) + " M cycles");
+    }
+
+  }
+
+  /**
+   * Tests opcodes with x_arg = 0.
+   * @param z_num value of the z_arg bits
+   * @param is_Q set to 1 or 0, sets the q_arg flag
+   */
+  public void x0_tests(int z_num, int is_Q) {
+
+    // Loops though every 16-bit register that can be an argument.
+    // If the instruction uses 8-bit registers, is_Q is used to get
+    // either even or odd indexed registers
+    for (int j = 0; j < 4; j++) {
+      System.out.println("\n\nRegisters before instruction:");
+      System.out.println(regSet);
+
+      // Encodes the instruction to the proper format: alu[y] a, r[z]
+      int instruction = (P_MASK & (j << 4)) + (Q_MASK * is_Q) + (Z_MASK & z_num);
+
+      // Runs the opcode and returns how many M-cycles it took
+      int clockCycles = executeOpcode((short)instruction);
+      
+      System.out.println("Current instruction: " + current_opcode);
+
+      // This is so the proper destination register is printed out for the results
+      if (z_num == 1) { System.out.printf("Results:\nHL: 0x%04x\n", regSet.getWord(Reg_16.HL)); }
+      else if (z_num == 3) { System.out.printf("Results:\n%s: 0x%04x\n", rp_args[j], regSet.getWord(rp_args[j])); }
+      else if (((j << 1) + is_Q) != 6) { System.out.printf("Results:\n%s: 0x%04x\n", r_args[(j << 1) + is_Q], regSet.getByte(r_args[(j << 1) + is_Q])); }
+
+      System.out.println(regSet.getFlags());
+      System.out.println("Clock cycles took: " + (clockCycles/4) + " M cycles");
+    }
+    
+  }
+
+  /**
+   * CPU Tester Program
+   * @param args
+   */
+  public static void main(String[] args) {
+    CPU cpu = new CPU();
+
+    // Resets the register set
+    cpu.regSet = new RegisterSet();
+
+    // 8-bit ALU instructions
+    cpu.alu_tests(Alu_t.ADD.index);
+    cpu.alu_tests(Alu_t.ADC.index);
+    cpu.alu_tests(Alu_t.SUB.index);
+    cpu.alu_tests(Alu_t.SBC.index);
+    cpu.alu_tests(Alu_t.AND.index);
+    cpu.alu_tests(Alu_t.XOR.index);
+    cpu.alu_tests(Alu_t.OR.index);
+    cpu.alu_tests(Alu_t.CP.index);
+
+    // Resets the register set
+    cpu.regSet = new RegisterSet();
+
+    // 16-bit ADD HL
+    cpu.x0_tests(1, 1);
+
+    // 16-bit INC
+    cpu.x0_tests(3, 0);
+
+    // 16-bit DEC
+    cpu.x0_tests(3, 1);
+
+    // 8-bit INC
+    cpu.x0_tests(4, 0);
+    cpu.x0_tests(4, 1);
+
+    // 8-bit DEC
+    cpu.x0_tests(5, 0);
+    cpu.x0_tests(5, 1);
+  }
+
+//#endregion
 }

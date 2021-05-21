@@ -164,11 +164,41 @@ public class RegisterSet {
   public void clearHalfCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x20); }
 
   // Methods for the Carry flag in the F register
-  public boolean getCarryFlag() { return (getByte(Reg_8.F) & 0x80) > 0; }
+  public boolean getCarryFlag() { return (getByte(Reg_8.F) & 0x10) > 0; }
   public void setCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) | 0x10); }
   public void clearCarryFlag() { setByte(Reg_8.F, getByte(Reg_8.F) & ~0x10); }
 
   //#endregion
+
+  /**
+   * Returns a string representation of the flags stored in this register set
+   * @return String of flags
+   */
+  public String getFlags() {
+    String val =
+    String.format(
+      "Zero:        %d\n" +
+      "Negative:    %d\n" +
+      "Half Carry:  %d\n" +
+      "Carry:       %d\n",
+      getZeroFlag()       ? 1 : 0,
+      getNegativeFlag()   ? 1 : 0,
+      getHalfCarryFlag()  ? 1 : 0,
+      getCarryFlag()      ? 1 : 0
+    );
+    return val;
+  }
+
+  @Override
+  public String toString() {
+    String val
+    = String.format("AF: 0x%04x\t A: 0x%02x\t F: 0x%02x\n", getWord(Reg_16.AF), getByte(Reg_8.A), getByte(Reg_8.F))
+    + String.format("BC: 0x%04x\t B: 0x%02x\t C: 0x%02x\n", getWord(Reg_16.BC), getByte(Reg_8.B), getByte(Reg_8.C))
+    + String.format("DE: 0x%04x\t D: 0x%02x\t E: 0x%02x\n", getWord(Reg_16.DE), getByte(Reg_8.D), getByte(Reg_8.E))
+    + String.format("HL: 0x%04x\t H: 0x%02x\t L: 0x%02x\n", getWord(Reg_16.HL), getByte(Reg_8.H), getByte(Reg_8.L))
+    + String.format("\nSP: 0x%04x\nPC: 0x%04x\n", getWord(Reg_16.SP), getWord(Reg_16.PC));
+    return val;
+  }
 
   /**
    * Test to make sure the registerSet class works properly.
