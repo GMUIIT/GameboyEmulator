@@ -87,7 +87,7 @@ public class RegisterSet {
    * @param value value to set
    */
   public void setWord(Reg_16 register, int value) {
-    registerMap.put(register, value);
+    registerMap.put(register, value & 0xFFFF);
   }
 
   /**
@@ -175,8 +175,8 @@ public class RegisterSet {
    * @return String of flags
    */
   public String getFlags() {
-    String val =
-    String.format(
+    String val
+    = String.format(
       "Zero:        %d\n" +
       "Negative:    %d\n" +
       "Half Carry:  %d\n" +
@@ -189,14 +189,38 @@ public class RegisterSet {
     return val;
   }
 
+  public String getFlagsShort() {
+    String val
+    = String.format("Flags Set: %c%c%c%c",
+      getZeroFlag()       ? 'Z' : '_',
+      getNegativeFlag()   ? 'N' : '_',
+      getHalfCarryFlag()  ? 'H' : '_',
+      getCarryFlag()      ? 'C' : '_'
+    );
+    return val;
+  }
+
   @Override
   public String toString() {
     String val
-    = String.format("AF: 0x%04x\t A: 0x%02x\t F: 0x%02x\n", getWord(Reg_16.AF), getByte(Reg_8.A), getByte(Reg_8.F))
-    + String.format("BC: 0x%04x\t B: 0x%02x\t C: 0x%02x\n", getWord(Reg_16.BC), getByte(Reg_8.B), getByte(Reg_8.C))
-    + String.format("DE: 0x%04x\t D: 0x%02x\t E: 0x%02x\n", getWord(Reg_16.DE), getByte(Reg_8.D), getByte(Reg_8.E))
-    + String.format("HL: 0x%04x\t H: 0x%02x\t L: 0x%02x\n", getWord(Reg_16.HL), getByte(Reg_8.H), getByte(Reg_8.L))
-    + String.format("\nSP: 0x%04x\nPC: 0x%04x\n", getWord(Reg_16.SP), getWord(Reg_16.PC));
+    = String.format("AF: 0x%04x, BC: 0x%04x, DE: 0x%04x, HL: 0x%04x, SP: 0x%04x, PC: 0x%04x\n",
+      getWord(Reg_16.AF),
+      getWord(Reg_16.BC),
+      getWord(Reg_16.DE),
+      getWord(Reg_16.HL),
+      getWord(Reg_16.SP),
+      getWord(Reg_16.PC)
+    );
+    return val;
+  }
+
+  public String toStringLong() {
+    String val
+    = String.format("AF: 0x%04x   A: 0x%02x   F: 0x%02x\n", getWord(Reg_16.AF), getByte(Reg_8.A), getByte(Reg_8.F))
+    + String.format("BC: 0x%04x   B: 0x%02x   C: 0x%02x\n", getWord(Reg_16.BC), getByte(Reg_8.B), getByte(Reg_8.C))
+    + String.format("DE: 0x%04x   D: 0x%02x   E: 0x%02x\n", getWord(Reg_16.DE), getByte(Reg_8.D), getByte(Reg_8.E))
+    + String.format("HL: 0x%04x   H: 0x%02x   L: 0x%02x\n", getWord(Reg_16.HL), getByte(Reg_8.H), getByte(Reg_8.L))
+    + String.format("\nSP: 0x%04x   PC: 0x%04x", getWord(Reg_16.SP), getWord(Reg_16.PC));
     return val;
   }
 

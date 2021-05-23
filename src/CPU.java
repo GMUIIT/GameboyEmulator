@@ -561,75 +561,111 @@ public class CPU {
   //#region ---- ---- ---- ---- ---- Misc Opcodes
 
   /**
-   * 
+   * Swaps the upper and lower nibbles of the source registers
    * @param source
    */
   void SWAP(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = ((value & 0xf0) >> 4) + ((value & 0x0f) << 4);
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
     
+    regSet.clearNegativeFlag();
+    regSet.clearCarryFlag();
+    regSet.clearHalfCarryFlag();
+
+    if (source != null) regSet.setByte(source, result & 0xff);
   }
 
   /**
-   * 
+   * Decimal Adjust Operation. Adds or substracts 6 to the lower nibble or higher nibble
+   * of the A register depending on which flags are set.
+   * This is to correct BCD addition problems
    */
   void DAA() {
+    int result = regSet.getA();
 
+    if (regSet.getNegativeFlag()) {
+      if (regSet.getHalfCarryFlag()) { result = (result - 0x06) & 0xFF; }
+      if (regSet.getCarryFlag()) { result -= 0x60; }
+    }
+    else {
+      if (regSet.getHalfCarryFlag() || (result & 0xF) > 0x09) { result += 0x06; }
+      if (regSet.getCarryFlag() || (result > 0x9F)) { result += 0x60; }
+    }
+
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if (result >= 0x100) regSet.setCarryFlag();
+
+    regSet.clearHalfCarryFlag();
+    regSet.setA(result & 0xFF);
   }
 
   /**
-   * 
+   * Compliments the A register (flips all the bits)
    */
   void CPL() {
-
+    regSet.setA((~regSet.getA()) & 0xFF);
+    regSet.setNegativeFlag();
+    regSet.setHalfCarryFlag();
   }
 
   /**
-   * 
+   * Compliments the carry flag
    */
   void CCF() {
+    if (regSet.getCarryFlag()) { regSet.clearCarryFlag(); }
+    else { regSet.setCarryFlag(); }
 
+    regSet.clearHalfCarryFlag();
+    regSet.clearNegativeFlag();
   }
 
   /**
-   * 
+   * Sets the carry flag
    */
   void SCF() {
+    regSet.setCarryFlag();
 
+    regSet.clearHalfCarryFlag();
+    regSet.clearNegativeFlag();
   }
 
   /**
-   * 
+   * No Operation... Nothing happens of course :P
    */
-  void NOP() {
-
-  }
+  void NOP() { }
 
   /**
-   * 
+   * Power down CPU until an interrupt occurs. Use this
+   * when ever possible to reduce energy consumption.
    */
   void HALT() {
-
+    /** NOTE: Cannot implement until interrupts are implemented */
   }
   
   /**
-   * 
+   * Halt CPU & LCD display until button pressed.
    */
   void STOP() {
-
+    /** NOTE: Cannot implement until interrupts are implemented */
   }
 
   /**
-   * 
+   * Disables Interrupts
    */
   void DI() {
-
+    /** NOTE: Cannot implement until interrupts are implemented */
   }
   
   /**
-   * 
+   * Enables Interrupts
    */
   void EI() {
-
+    /** NOTE: Cannot implement until interrupts are implemented */
   }
 
   //#endregion
@@ -637,94 +673,235 @@ public class CPU {
   //#region ---- ---- ---- ---- ---- Rotates and Shifts 
 
   /**
-   * 
+   * Circular left rotates register A. Like a logical shift but wraps from bit 7 back to bit 0.
+   * It sets/resets the carry flag based on the initial 7th bit value in register A.
    */
   void RLCA() {
+    int result = regSet.getA() << 1;
+    
+    if ((result & 0x100) > 0) {
+      regSet.setCarryFlag();
+      result |= 1;
+    }
+    else { regSet.clearCarryFlag(); }
 
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
   }
 
   /**
-   * 
+   * Circular left rotates register A, and sets bit 0 to the carry flag.
+   * It sets/resets the carry flag based on the initial 7th bit value.
    */
   void RLA() {
+    int result = regSet.getA() << 1;
+    
+    if (regSet.getCarryFlag()) { result |= 0x01; }
+    if ((result & 0x100) > 0) { regSet.setCarryFlag(); }
+    else { regSet.clearCarryFlag(); }
 
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
   }
 
   /**
-   * 
+   * Circular right rotates register A. Like a logical shift but wraps from bit 0 back to bit 7.
+   * It sets/resets the carry flag based on the initial 0th bit value in register A.
    */
   void RRCA() {
+    int result = regSet.getA() >> 1;
+    
+    if ((regSet.getA() & 0x1) > 0) {
+      regSet.setCarryFlag();
+      result |= 0x80;
+    }
+    else { regSet.clearCarryFlag(); }
 
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
   }
 
   /**
-   * 
+   * Circular right rotates register A, and sets bit 7 to the carry flag.
+   * It sets/resets the carry flag based on the initial 7th bit value.
    */
   void RRA() {
+    int result = regSet.getA() >> 1;
+    
+    if (regSet.getCarryFlag()) { result |= 0x80; }
+    if ((regSet.getA() & 0x1) > 0) { regSet.setCarryFlag(); }
+    else { regSet.clearCarryFlag(); }
 
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
   }
 
   /**
-   * 
+   * Like RLCA but works for the other registers (extended opcode)
    * @param source
    */
   void RLC(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = value << 1;
+    
+    if ((result & 0x100) > 0) {
+      regSet.setCarryFlag();
+      result |= 1;
+    }
+    else { regSet.clearCarryFlag(); }
 
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    if (source != null) regSet.setByte(source, result & 0xFF);
   }
   
   /**
-   * 
+   * Like RLA but works for the other registers (extended opcode)
    * @param source
    */
   void RL(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = value << 1;
     
+    if (regSet.getCarryFlag()) { result |= 0x01; }
+    if ((result & 0x100) > 0) { regSet.setCarryFlag(); }
+    else { regSet.clearCarryFlag(); }
+
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    if (source != null) regSet.setByte(source, result & 0xFF);
   }
   
   /**
-   * 
+   * Like RRCA but works for the other registers (extended opcode)
    * @param source
    */
   void RRC(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = value >> 1;
+    
+    if ((value & 0x1) > 0) {
+      regSet.setCarryFlag();
+      result |= 0x80;
+    }
+    else { regSet.clearCarryFlag(); }
 
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    if (source != null) regSet.setByte(source, result & 0xFF);
   }
   
   /**
-   * 
+   * Like RRA but works for the other registers (extended opcode)
    * @param source
    */
   void RR(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = value >> 1;
+    
+    if (regSet.getCarryFlag()) { result |= 0x80; }
+    if ((value & 0x1) > 0) { regSet.setCarryFlag(); }
+    else { regSet.clearCarryFlag(); }
 
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    if (source != null) regSet.setByte(source, result & 0xFF);
   }
 
   /**
-   * 
+   * Left Shifts the source register. Also resets the 0th bit of the source register.
    * @param source
    */
   void SLA(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = value << 1;
 
+    if ((result & 0x100) > 0) { regSet.setCarryFlag(); }
+    else { regSet.clearCarryFlag(); }
+
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    if (source != null) regSet.setByte(source, result & 0xFF);
   }
   
   /**
-   * 
+   * Right shifts the source register. Keeps the value in the 7th bit so it like an arithmetic shift.
    * @param source
    */
   void SRA(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = (value >> 1) + (value & 0x80);
+    
+    if ((value & 0x1) > 0) { regSet.setCarryFlag(); }
+    else { regSet.clearCarryFlag(); }
 
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    if (source != null) regSet.setByte(source, result & 0xFF);
   }
   
   /**
-   * 
+   * Right shifts the source register. Also resets bit 0 of the source register.
    * @param source
    */
   void SRL(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int result = (value >> 1);
+    
+    if ((value & 0x1) > 0) { regSet.setCarryFlag(); }
+    else { regSet.clearCarryFlag(); }
 
+    if (result != 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
+
+    regSet.clearNegativeFlag();
+    regSet.clearHalfCarryFlag();
+
+    if (source != null) regSet.setByte(source, result & 0xFF);
   }
 
   //#endregion
@@ -732,30 +909,42 @@ public class CPU {
   //#region ---- ---- ---- ---- ---- Bit Opcodes
 
   /**
-   * 
+   * Used to check if the bit in position b is set/reset in the source register
    * @param b
    * @param source
    */
   void BIT(int b, Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    
+    if ((value & (1 << b)) > 0) { regSet.clearZeroFlag(); }
+    else { regSet.setZeroFlag(); }
 
+    regSet.clearNegativeFlag();
+    regSet.setHalfCarryFlag();
   }
 
   /**
-   * 
+   * Sets the bit in position b in the source register
    * @param b
    * @param source
    */
   void SET(int b, Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    value |= 1 << b;
 
+    if (source != null) { regSet.setByte(source, value); }
   }
 
   /**
-   * 
+   * Resets the bit in position b in the source register
    * @param b
    * @param source
    */
   void RES(int b, Reg_8 source) {
+    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    value &= ~(1 << b);
 
+    if (source != null) { regSet.setByte(source, value); }
   }
 
   //#endregion
@@ -1037,7 +1226,11 @@ public class CPU {
    */
   public int executeOpcode(short opcode) {
     // CB-prefixed opcodes
-    if (opcode == 0xCB) { return executeExtendedOpcode(); }
+    if (opcode == 0xCB) {
+      //opcode = ReadMemory(regSet.getPC());
+      regSet.setPC(regSet.getPC() + 1);
+      return executeExtendedOpcode(opcode);
+    }
 
     int x_arg = (opcode & X_MASK) >> 6;
     int y_arg = (opcode & Y_MASK) >> 3;
@@ -1064,12 +1257,7 @@ public class CPU {
    * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
    * @return
    */
-  int executeExtendedOpcode() {
-    short opcode = 0;
-
-    //short opcode = ReadMemory(m_ProgramCounter) ;
-    regSet.setPC(regSet.getPC() + 1);
-
+  int executeExtendedOpcode(short opcode) {
     int x_arg = (opcode & X_MASK) >> 6;
     int y_arg = (opcode & Y_MASK) >> 3;
     int z_arg = (opcode & Z_MASK);
@@ -1079,11 +1267,11 @@ public class CPU {
     switch(x_arg) {
       case 0 :
         RotMap.get(rot_args[y_arg]).invoke(r_args[z_arg]);
-        current_opcode = Rot_t.values()[y_arg] + " , " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
+        current_opcode = Rot_t.values()[y_arg] + " " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
         return M_CYCLE*2;
-      case 1: BIT(y_arg, r_args[z_arg]); return M_CYCLE*2;
-      case 2: RES(y_arg, r_args[z_arg]); return M_CYCLE*2;
-      case 3: SET(y_arg, r_args[z_arg]); return M_CYCLE*2;
+      case 1: BIT(y_arg, r_args[z_arg]); current_opcode = "BIT " + y_arg + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)"); return M_CYCLE*2;
+      case 2: RES(y_arg, r_args[z_arg]); current_opcode = "RES " + y_arg + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)"); return M_CYCLE*2;
+      case 3: SET(y_arg, r_args[z_arg]); current_opcode = "SET " + y_arg + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)"); return M_CYCLE*2;
 
       default:
         //assert(false);
@@ -1097,7 +1285,7 @@ public class CPU {
    */
   int executeNextOpcode() {
     int res = 0;
-    short opcode = 0;//ReadMemory(m_ProgramCounter);
+    short opcode = 0;//ReadMemory(regSet.getPC());
     regSet.setPC(regSet.getPC() + 1);
     res =	executeOpcode(opcode);
     return res ;
@@ -1113,23 +1301,26 @@ public class CPU {
    */
   public void alu_tests(int ALU_opcode) {
     
+    System.out.println("\nRegisters before instruction:");
+    System.out.println(regSet);
+
     // Loops through every 8-bit register that can be an argument
     for (int j = 0; j < 7; j++) {
-      System.out.println("\n\nRegisters before instruction:");
-      System.out.println(regSet);
-
       // Encodes the instruction to the proper format: alu[y], r[z]
       int instruction = 0b10000000 + (Y_MASK & (ALU_opcode << 3)) + (Z_MASK & j);
 
       // Runs the opcode and returns how many M-cycles it took
       int clockCycles = executeOpcode((short)instruction);
       
-      System.out.println("Current instruction: " + current_opcode);
-      System.out.printf("Results:\nA: 0x%02x\n", regSet.getByte(Reg_8.A));
-      System.out.println(regSet.getFlags());
-      System.out.println("Clock cycles took: " + (clockCycles/4) + " M cycles");
+      System.out.print("Current instruction: " + current_opcode);
+      System.out.printf("\tResults in A: 0x%02x", regSet.getByte(Reg_8.A));
+      System.out.print("   " + regSet.getFlagsShort());
+      System.out.println("   Cycles: " + (clockCycles/4) + " M");
     }
 
+    System.out.println("\nRegisters after instructions:");
+    System.out.println(regSet);
+    System.out.println("--------------------------------------------------------------------");
   }
 
   /**
@@ -1137,14 +1328,19 @@ public class CPU {
    * @param z_num value of the z_arg bits
    * @param is_Q set to 1 or 0, sets the q_arg flag
    */
-  public void x0_tests(int z_num, int is_Q) {
+  public void x0_tests(int z_num, int y, int is_Q) {
 
+    System.out.println("--------------------------------------------------------------------");
+
+    if (y == -1) {
+      System.out.println("\nRegisters before instruction:");
+      System.out.println(regSet);
+    }
     // Loops though every 16-bit register that can be an argument.
     // If the instruction uses 8-bit registers, is_Q is used to get
     // either even or odd indexed registers
     for (int j = 0; j < 4; j++) {
-      System.out.println("\n\nRegisters before instruction:");
-      System.out.println(regSet);
+      if (y != -1) { j = y; System.out.println("\nRegisters before instruction:"); System.out.print(regSet); }
 
       // Encodes the instruction to the proper format: alu[y] a, r[z]
       int instruction = (P_MASK & (j << 4)) + (Q_MASK * is_Q) + (Z_MASK & z_num);
@@ -1152,30 +1348,109 @@ public class CPU {
       // Runs the opcode and returns how many M-cycles it took
       int clockCycles = executeOpcode((short)instruction);
       
-      System.out.println("Current instruction: " + current_opcode);
+      System.out.print("Current instruction: " + current_opcode);
 
       // This is so the proper destination register is printed out for the results
-      if (z_num == 1) { System.out.printf("Results:\nHL: 0x%04x\n", regSet.getWord(Reg_16.HL)); }
-      else if (z_num == 3) { System.out.printf("Results:\n%s: 0x%04x\n", rp_args[j], regSet.getWord(rp_args[j])); }
-      else if (((j << 1) + is_Q) != 6) { System.out.printf("Results:\n%s: 0x%04x\n", r_args[(j << 1) + is_Q], regSet.getByte(r_args[(j << 1) + is_Q])); }
+      if (z_num == 1) { System.out.printf("\tResults in HL: 0x%04x", regSet.getWord(Reg_16.HL)); }
+      else if (z_num == 3) { System.out.printf("\tResults in %s: 0x%04x", rp_args[j], regSet.getWord(rp_args[j])); }
+      else if (z_num == 7) { System.out.printf("\tResults in A: 0x%02x", regSet.getA()); }
+      else if (((j << 1) + is_Q) != 6) { System.out.printf("\tResults in %s: 0x%04x", r_args[(j << 1) + is_Q], regSet.getByte(r_args[(j << 1) + is_Q])); }
 
-      System.out.println(regSet.getFlags());
-      System.out.println("Clock cycles took: " + (clockCycles/4) + " M cycles");
+      System.out.print("   " + regSet.getFlagsShort());
+      System.out.println("   Cycles " + (clockCycles/4) + " M");
+      if (y != -1) { break; }
     }
     
+    System.out.println("\nRegisters after instructions:");
+    System.out.println(regSet);
+  }
+
+  /**
+   * Tests 8-bit ROT commands on every register.
+   * @param ROT_opcode r_args value of the opcode
+   */
+  public void rot_tests(int ROT_opcode, boolean setCarry) {
+    
+    System.out.println("\nRegisters before instructions:");
+    System.out.println(regSet);
+
+    // Loops through every 8-bit register that can be an argument
+    for (int j = 0; j < 8; j++) {
+      if (setCarry) { regSet.setCarryFlag(); }
+      else { regSet.clearCarryFlag(); }
+
+      System.out.println(regSet.getFlagsShort());
+
+      // Encodes the instruction to the proper format: rot[y], r[z]
+      int instruction = (Y_MASK & (ROT_opcode << 3)) + (Z_MASK & j);
+
+      // Runs the opcode and returns how many M-cycles it took
+      int clockCycles = executeExtendedOpcode((short)instruction);
+      
+      System.out.print("Current instruction (extended): " + current_opcode);
+      if (j != 6) { System.out.printf("\tResults in %s: 0x%02x", r_args[j], regSet.getByte(r_args[j])); }
+      else { System.out.printf("\tResults in (HL): 0x%02x", 0); }
+      System.out.print("   " + regSet.getFlagsShort());
+      System.out.print("   Cycles: " + (clockCycles/4) + " M\n");
+    }
+
+    System.out.println("\nRegisters after instructions:");
+    System.out.println(regSet);
+    System.out.println(regSet.getFlags());
+    System.out.println("--------------------------------------------------------------------");
+  }
+
+  /**
+   * Bit operation tests
+   * @param BIT_opcode r_args value of the opcode
+   */
+  public void BIT_tests(int BIT_opcode) {
+    
+    System.out.println("\nRegisters before instructions:");
+    System.out.println(regSet);
+
+    // Loops through every 8-bit register that can be an argument
+    for (int j = 0; j < 8; j++) {
+      for (int i = 0; i < 8; i++) {
+        System.out.println(regSet.getFlagsShort());
+
+        // Encodes the instruction to the proper format: BIT/RES/SET y, r[z]
+        int instruction = (BIT_opcode << 6) + (Y_MASK & (i << 3)) + (Z_MASK & j);
+
+        // Runs the opcode and returns how many M-cycles it took
+        int clockCycles = executeExtendedOpcode((short)instruction);
+        
+        System.out.print("Current instruction (extended): " + current_opcode);
+        if (j != 6) { System.out.printf("\tResults in %s: 0x%02x", r_args[j], regSet.getByte(r_args[j])); }
+        else { System.out.printf("\tResults in (HL): 0x%02x", 0); }
+        System.out.print("   " + regSet.getFlagsShort());
+        System.out.print("   Cycles: " + (clockCycles/4) + " M\n");
+      }
+    }
+
+    System.out.println("\nRegisters after instructions:");
+    System.out.println(regSet);
+    System.out.println(regSet.getFlags());
+    System.out.println("--------------------------------------------------------------------");
   }
 
   /**
    * CPU Tester Program
+   * You compile this with this command:
+   * javac -d compiled CPU.java
+   * 
+   * run with this command:
+   * java -cp compiled CPU
    * @param args
    */
   public static void main(String[] args) {
     CPU cpu = new CPU();
-
-    // Resets the register set
     cpu.regSet = new RegisterSet();
 
-    // 8-bit ALU instructions
+    System.out.println("CPU Tests....");
+
+    //#region 8-bit ALU instructions
+
     cpu.alu_tests(Alu_t.ADD.index);
     cpu.alu_tests(Alu_t.ADC.index);
     cpu.alu_tests(Alu_t.SUB.index);
@@ -1185,25 +1460,123 @@ public class CPU {
     cpu.alu_tests(Alu_t.OR.index);
     cpu.alu_tests(Alu_t.CP.index);
 
+    //#endregion
+    //#region x=0 tests
+
     // Resets the register set
     cpu.regSet = new RegisterSet();
 
     // 16-bit ADD HL
-    cpu.x0_tests(1, 1);
+    cpu.x0_tests(1, -1, 1);
 
     // 16-bit INC
-    cpu.x0_tests(3, 0);
+    cpu.x0_tests(3, -1, 0);
 
     // 16-bit DEC
-    cpu.x0_tests(3, 1);
+    cpu.x0_tests(3, -1, 1);
 
     // 8-bit INC
-    cpu.x0_tests(4, 0);
-    cpu.x0_tests(4, 1);
+    cpu.x0_tests(4, -1, 0);
+    cpu.x0_tests(4, -1, 1);
 
     // 8-bit DEC
-    cpu.x0_tests(5, 0);
-    cpu.x0_tests(5, 1);
+    cpu.x0_tests(5, -1, 0);
+    cpu.x0_tests(5, -1, 1);
+
+    //#endregion
+    //#region Rotation and other x=0 opcodes
+
+    // RLCA
+    cpu.regSet = new RegisterSet();
+    cpu.regSet.setA(0xF0);
+    cpu.regSet.clearCarryFlag();
+    cpu.x0_tests(7, 0, 0);
+    System.out.println("Without carry Expected: 0xe1");
+    cpu.regSet.setA(0x70);
+    cpu.regSet.setCarryFlag();
+    cpu.x0_tests(7, 0, 0);
+    System.out.println("With Carry Expected: 0xe0");
+
+    // RLA
+    cpu.regSet.setA(0xF0);
+    cpu.regSet.clearCarryFlag();
+    cpu.x0_tests(7, 1, 0);
+    System.out.println("w/ carry Expected: 0xe0");
+    cpu.regSet.setA(0x70);
+    cpu.regSet.setCarryFlag();
+    cpu.x0_tests(7, 1, 0);
+    System.out.println("w/out Expected: 0xe1");
+
+    // RRCA
+    cpu.regSet.setA(0x0F);
+    cpu.regSet.clearCarryFlag();
+    cpu.x0_tests(7, 0, 1);
+    System.out.println("w/ Expected: 0x87");
+    cpu.regSet.setA(0x0E);
+    cpu.regSet.setCarryFlag();
+    cpu.x0_tests(7, 0, 1);
+    System.out.println("w/out Expected: 0x07");
+
+    // RRA
+    cpu.regSet.setA(0x0F);
+    cpu.regSet.clearCarryFlag();
+    cpu.x0_tests(7, 1, 1);
+    System.out.println("w/ Expected: 0x07");
+
+    cpu.regSet.setA(0x0E);
+    cpu.regSet.setCarryFlag();
+    cpu.x0_tests(7, 1, 1);
+    System.out.println("w/out Expected: 0x87");
+
+    cpu.regSet = new RegisterSet();
+
+    cpu.x0_tests(7, 2, 0);  // DAA
+    cpu.x0_tests(7, 2, 1);  // CPL
+    cpu.x0_tests(7, 3, 1);  // SCF
+    cpu.x0_tests(7, 3, 1);  // CCF
+
+    //#endregion
+    //#region Jump instruction tests
+
+    // JP HL
+    cpu.regSet.setWord(Reg_16.HL, 0x156f);
+    System.out.print(cpu.regSet);
+    cpu.executeOpcode((short)0xE9);
+    System.out.println("Current instruction: " + cpu.current_opcode);
+    System.out.println(cpu.regSet);
+
+    //#endregion
+    //#region Extended opcodes:
+    cpu.regSet = new RegisterSet();
+
+    // Rotational/Shift operations
+    cpu.rot_tests(Rot_t.SWAP.index, false);
+    cpu.rot_tests(Rot_t.RLC.index, false);
+    cpu.rot_tests(Rot_t.RLC.index, true);
+    cpu.rot_tests(Rot_t.RRC.index, false);
+    cpu.rot_tests(Rot_t.RRC.index, true);
+    cpu.rot_tests(Rot_t.RL.index, false);
+    cpu.rot_tests(Rot_t.RL.index, true);
+    cpu.rot_tests(Rot_t.RR.index, false);
+    cpu.rot_tests(Rot_t.RR.index, true);
+    cpu.rot_tests(Rot_t.SLA.index, false);
+    cpu.rot_tests(Rot_t.SLA.index, true);
+    cpu.rot_tests(Rot_t.SRA.index, false);
+    cpu.rot_tests(Rot_t.SRA.index, true);
+    cpu.rot_tests(Rot_t.SRL.index, false);
+    cpu.rot_tests(Rot_t.SRL.index, true);
+
+    // Bit tests
+    cpu.BIT_tests(1);
+
+    // Bit resets
+    cpu.regSet = new RegisterSet(0xFF00, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFE, 0x100);
+    cpu.BIT_tests(2);
+
+    // Bit sets
+    cpu.BIT_tests(3);
+
+    //#endregion
   }
 
 //#endregion
