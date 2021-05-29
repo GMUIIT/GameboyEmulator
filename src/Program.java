@@ -35,7 +35,7 @@ public class Program {
    */
   public static byte[] loadCartridge() {
     String fileName = "Tetris (Japan) (En).gb";
-    byte[] cartridgeMemory = new byte[0x200000];
+    byte[] cartridgeMemory = new byte[0x8000];
 
     try {
       FileInputStream inputStream = new FileInputStream(fileName);
@@ -87,11 +87,11 @@ public class Program {
    */
   public static void tester() {
     // Put tester code here!
-    System.out.println(memMap.cartridgeMemory);
-    memMap.cartridgeMemory = loadCartridge();
-    System.out.println(memMap.cartridgeMemory);
+    // System.out.println(memMap.cartridgeMemory);
+    // memMap.cartridgeMemory = loadCartridge();
+    // System.out.println(memMap.cartridgeMemory);
 
-    System.out.println("This is a tester!");
+    // System.out.println("This is a tester!");
   }
 
   /**
