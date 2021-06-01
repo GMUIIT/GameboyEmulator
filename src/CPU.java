@@ -18,13 +18,15 @@ public class CPU {
     initializeHashmaps();
   }
 
-//#region ---- ---- ---- ---- ---- Registers ---- ---- ---- ---- ---- ---- ---- ----
+//#region ---- ---- ---- ---- ----  Memory Access  ---- ---- ---- ---- ---- ---- ---- ----
   public RegisterSet regSet = new RegisterSet();
 
   // private RegisterSet save0 = new RegisterSet(0, 0, 0, 0, 0, 0);
   // private RegisterSet save1 = new RegisterSet(0, 0, 0, 0, 0, 0);
   // private RegisterSet save2 = new RegisterSet(0, 0, 0, 0, 0, 0);
   // private RegisterSet save3 = new RegisterSet(0, 0, 0, 0, 0, 0);
+
+  public MemoryMap memMap = new MemoryMap();
 
 //#endregion
 
@@ -144,19 +146,21 @@ public class CPU {
    * @param source
    */
   void LD(Reg_8 destination, Reg_8 source) {
-    if (destination == null || source == null) { return; }
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
 
-    regSet.setByte(destination, regSet.getByte(source));
+    if (destination == null) {
+      memMap.writeMemory(regSet.getWord(Reg_16.HL), (char)value);
+    } else {
+      regSet.setByte(destination, value);
+    }
   }
 
   /**
-   * Loads a value from an 8-bit register to another register
+   * Loads a value from an 16-bit register to another register
    * @param destination
    * @param source
    */
   void LD_16(Reg_16 destination, Reg_16 source) {
-    if (destination == null || source == null) { return; }
-
     regSet.setWord(destination, regSet.getWord(source));
   }
 
@@ -166,7 +170,11 @@ public class CPU {
    * @param isAdest controls whether A is the destination or not
    */
   void LD_IN(Reg_16 register, boolean isAdest) {
-
+    if (isAdest) {
+      regSet.setA(memMap.readMemory(regSet.getWord(register)));
+    } else {
+      memMap.writeMemory(regSet.getWord(register), (char)regSet.getA());
+    }
   }
 
   /**
@@ -174,7 +182,11 @@ public class CPU {
    * @param destination
    */
   void LD_IM(Reg_8 destination) {
+    int operand = memMap.readMemory(regSet.getPC());
 
+    if (destination != null) regSet.setByte(destination, operand);
+    else memMap.writeMemory(regSet.getWord(Reg_16.HL), (char)operand);
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
@@ -183,7 +195,11 @@ public class CPU {
    * @param isAdest
    */
   void LD_C(boolean isAdest) {
-
+    if (isAdest) {
+      regSet.setA(memMap.readMemory(0xFF00 + (0x00ff & regSet.getByte(Reg_8.C))));
+    } else {
+      memMap.writeMemory(0xFF00 + (0x00ff & regSet.getByte(Reg_8.C)), (char)regSet.getA());
+    }
   }
 
   /**
@@ -192,7 +208,15 @@ public class CPU {
    * @param isAdest
    */
   void LD_A(boolean isAdest) {
+    short operand = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
 
+    if (isAdest) {
+      regSet.setA(memMap.readMemory(regSet.getPC()));
+    } else {
+      memMap.writeMemory(operand, (char)regSet.getA());
+    }
+
+    regSet.setPC(regSet.getPC() + 2);
   }
 
   /**
@@ -201,7 +225,16 @@ public class CPU {
    * @param isdest
    */
   void LD_16_IM(Reg_16 register, boolean isdest) {
+    short operand = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
 
+    if (isdest) {
+      regSet.setWord(register, operand);
+    } else {
+      memMap.writeMemory(operand, (char)(regSet.getWord(register) & 0xff));
+      memMap.writeMemory(operand + 1, (char)(regSet.getWord(register) >> 8));
+    }
+
+    regSet.setPC(regSet.getPC() + 2);
   }
   
   /**
@@ -210,7 +243,13 @@ public class CPU {
    * @param isAdest controls whether A is the destination or not
    */
   void LDI(Reg_16 register, boolean isAdest) {
-    
+    if (isAdest) {
+      regSet.setA((int)memMap.readMemory(regSet.getWord(Reg_16.HL)));
+    } else {
+      memMap.writeMemory(regSet.getWord(Reg_16.HL), (char)regSet.getA());
+    }
+
+    regSet.setWord(Reg_16.HL, regSet.getWord(Reg_16.HL) + 1);
   }
 
   /**
@@ -219,7 +258,13 @@ public class CPU {
    * @param isAdest controls whether A is the destination or not
    */
   void LDD(Reg_16 register, boolean isAdest) {
+    if (isAdest) {
+      regSet.setA((int)memMap.readMemory(regSet.getWord(Reg_16.HL)));
+    } else {
+      memMap.writeMemory(regSet.getWord(Reg_16.HL), (char)regSet.getA());
+    }
 
+    regSet.setWord(Reg_16.HL, regSet.getWord(Reg_16.HL) - 1);
   }
     
   /**
@@ -227,39 +272,59 @@ public class CPU {
    * @param isAdest controls whether A is the destination or not
    */
   void LDH(boolean isAdest) {
+    int operand = 0xFF & memMap.readMemory(regSet.getPC());
 
+    if (isAdest) {
+      regSet.setA((int)memMap.readMemory(0xFF00 + operand));
+    } else {
+      memMap.writeMemory(0xFF00 + operand, (char)regSet.getA());
+    }
+
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
    * Put SP + n effective address into HL.
    */
   void LDHL() {
+    int operand = 0xFF & memMap.readMemory(regSet.getPC());
 
+    regSet.setWord(Reg_16.HL, regSet.getSP() + operand);
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
-   * 
+   * Pops two bytes off stack into register pair nn. Then, Increments the Stack Pointer (SP) twice.
    */
   void POP(Reg_16 destination) {
+    short operand = (short)(((memMap.readMemory(regSet.getSP()) + 1) << 8) + (memMap.readMemory(regSet.getSP())));
 
+    regSet.setWord(destination, operand);
+    regSet.setSP(regSet.getSP() + 2);
   }
   
   /**
-   * 
+   * Pushes register pair nn onto stack. Then, decrements the Stack Pointer (SP) twice.
    */
   void PUSH(Reg_16 source) {
+    int value = regSet.getWord(source);
 
+    regSet.setSP(regSet.getSP() - 2);
+    memMap.writeMemory(regSet.getSP(), (char)(value >> 8));
+    memMap.writeMemory(regSet.getSP() + 1, (char)(value & 0xff));
+
+    // int t = 1/0;
   }
 
   //#endregion
 
   //#region ---- ---- ---- ---- ---- ALU Opcodes
   /**
-   * 
+   * Add source register + Carry flag to A
    * @param source
    */
   void ADC(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = regSet.getA() + value + (regSet.getCarryFlag() ? 1 : 0);
     int before = regSet.getA();
 
@@ -277,18 +342,33 @@ public class CPU {
   }
 
   /**
-   * 
+   * Add the next byte + Carry flag to A
    */
   void ADC_IM() {
+    short value = (short)(memMap.readMemory(regSet.getPC()));
+    int result = regSet.getA() + value + (regSet.getCarryFlag() ? 1 : 0);
+    int before = regSet.getA();
 
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if ((result & 0xFF00) > 0) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x0F) + (value & 0x0F)) > 0x0F) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.setA(result & 0xFF);
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
-   * 
+   * Add source register to A
    * @param source
    */
   void ADD(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = regSet.getA() + value;
     int before = regSet.getA();
 
@@ -306,14 +386,29 @@ public class CPU {
   }
 
   /**
-   * 
+   * Add the next byte to A
    */
   void ADD_IM() {
+    short value = (short)(memMap.readMemory(regSet.getPC()));
+    int result = regSet.getA() + value;
+    int before = regSet.getA();
 
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if ((result & 0xFF00) > 0) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x0F) + (value & 0x0F)) > 0x0F) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.setA(result & 0xFF);
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
-   * 
+   * Add 16-bit source register to HL
    */
   void ADD_HL(Reg_16 source) {
     int value = regSet.getWord(source);
@@ -331,18 +426,30 @@ public class CPU {
   }
 
   /**
-   * 
+   * Add the next signed byte to Stack Pointer (SP)
    */
   void ADD_SP() {
+    byte value = (byte)(memMap.readMemory(regSet.getPC()));
+    int result = regSet.getWord(Reg_16.SP) + value;
+    int before = regSet.getWord(Reg_16.SP);
 
+    if ((result & 0xF0000) > 0) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x00FF) + (value & 0x00FF)) > 0x00FF) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.clearZeroFlag();
+    regSet.clearNegativeFlag();
+    regSet.setWord(Reg_16.SP, result);
   }
 
   /**
-   * 
+   * Subtract source register to A
    * @param source
    */
   void SUB(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = regSet.getA() - value;
     int before = regSet.getA();
 
@@ -360,18 +467,33 @@ public class CPU {
   }
 
   /**
-   * 
+   * Subtract next byte to A
    */
   void SUB_IM() {
+    short value = (short)(memMap.readMemory(regSet.getPC()));
+    int result = regSet.getA() - value;
+    int before = regSet.getA();
 
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if (value > before) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x0F) - (value & 0x0F)) < 0) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.setNegativeFlag();
+    regSet.setA(result & 0xFF);
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
-   * 
+   * Subtract source register + Carry flag to A
    * @param source
    */
   void SBC(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = regSet.getA() - value + (regSet.getCarryFlag() ? 1 : 0);
     int before = regSet.getA();
 
@@ -389,18 +511,33 @@ public class CPU {
   }
 
   /**
-   * 
+   * Subtract next byte + Carry flag to A
    */
   void SBC_IM() {
+    short value = (short)(memMap.readMemory(regSet.getPC()));
+    int result = regSet.getA() - value + (regSet.getCarryFlag() ? 1 : 0);
+    int before = regSet.getA();
 
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if (value > before) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x0F) - (value & 0x0F)) < 0) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.setNegativeFlag();
+    regSet.setA(result & 0xFF);
+    regSet.setPC(regSet.getPC() + 1);
   }
   
   /**
-   * 
+   * AND operation with source register to A
    * @param source
    */
   void AND(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = regSet.getA() & value;
 
     if (result != 0) regSet.clearZeroFlag();
@@ -414,18 +551,29 @@ public class CPU {
   }
 
   /**
-   * 
+   * AND operation with the next byte to A
    */
   void AND_IM() {
+    short value = (short)(memMap.readMemory(regSet.getPC()));
+    int result = regSet.getA() & value;
 
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.clearCarryFlag();
+    regSet.setHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
-   * 
+   * OR operation with source register to A
    * @param source
    */
   void OR(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = regSet.getA() | value;
 
     if (result != 0) regSet.clearZeroFlag();
@@ -439,18 +587,29 @@ public class CPU {
   }
 
   /**
-   * 
+   * AND operation with the next byte to A
    */
   void OR_IM() {
+    short value = (short)(memMap.readMemory(regSet.getPC()));
+    int result = regSet.getA() | value;
 
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.clearCarryFlag();
+    regSet.clearHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
-   * 
+   * XOR operation with source register to A
    * @param source
    */
   void XOR(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = regSet.getA() ^ value;
 
     if (result != 0) regSet.clearZeroFlag();
@@ -464,18 +623,29 @@ public class CPU {
   }
 
   /**
-   * 
+   * XOR operation with the next byte to A
    */
   void XOR_IM() {
+    short value = (short)(memMap.readMemory(regSet.getPC()));
+    int result = regSet.getA() ^ value;
 
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    regSet.clearNegativeFlag();
+    regSet.clearCarryFlag();
+    regSet.clearHalfCarryFlag();
+
+    regSet.setA(result & 0xFF);
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
-   * 
+   * SUB operation with source register to A but the result is discarded
    * @param source
    */
   void CP(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = regSet.getA() - value + (regSet.getCarryFlag() ? 1 : 0);
     int before = regSet.getA();
 
@@ -492,18 +662,32 @@ public class CPU {
   }
 
   /**
-   * 
+   * SUB operation with the next byte to A but the result is discarded
    */
   void CP_IM() {
+    short value = (short)(memMap.readMemory(regSet.getPC()));
+    int result = regSet.getA() - value + (regSet.getCarryFlag() ? 1 : 0);
+    int before = regSet.getA();
 
+    if (result != 0) regSet.clearZeroFlag();
+    else regSet.setZeroFlag();
+
+    if (value > before) regSet.setCarryFlag();
+    else regSet.clearCarryFlag();
+
+    if (((before & 0x0F) - (value & 0x0F)) < 0) regSet.setHalfCarryFlag();
+    else regSet.clearHalfCarryFlag();
+
+    regSet.setNegativeFlag();
+    regSet.setPC(regSet.getPC() + 1);
   }
 
   /**
-   * 
+   * Increments source register
    * @param source
    */
   void INC(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = ++value;
 
     if (result != 0) regSet.clearZeroFlag();
@@ -514,10 +698,11 @@ public class CPU {
 
     regSet.clearNegativeFlag();
     if (source != null) { regSet.setByte(source, result & 0xFF); }
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
 
   /**
-   * 
+   * Increments 16-bit source register
    * @param source
    */
   void INC_16(Reg_16 source) {
@@ -528,11 +713,11 @@ public class CPU {
   }
 
   /**
-   * 
+   * Decrements source register
    * @param source
    */
   void DEC(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = --value;
 
     if (result != 0) regSet.clearZeroFlag();
@@ -543,10 +728,11 @@ public class CPU {
 
     regSet.setNegativeFlag();
     if (source != null) { regSet.setByte(source, result & 0xFF); }
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
 
   /**
-   * 
+   * Decrements 16-bit source register
    * @param source
    */
   void DEC_16(Reg_16 source) {
@@ -565,7 +751,7 @@ public class CPU {
    * @param source
    */
   void SWAP(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = ((value & 0xf0) >> 4) + ((value & 0x0f) << 4);
 
     if (result != 0) regSet.clearZeroFlag();
@@ -576,6 +762,7 @@ public class CPU {
     regSet.clearHalfCarryFlag();
 
     if (source != null) regSet.setByte(source, result & 0xff);
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
 
   /**
@@ -761,7 +948,7 @@ public class CPU {
    * @param source
    */
   void RLC(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = value << 1;
     
     if ((result & 0x100) > 0) {
@@ -777,6 +964,7 @@ public class CPU {
     regSet.clearHalfCarryFlag();
 
     if (source != null) regSet.setByte(source, result & 0xFF);
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
   
   /**
@@ -784,7 +972,7 @@ public class CPU {
    * @param source
    */
   void RL(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = value << 1;
     
     if (regSet.getCarryFlag()) { result |= 0x01; }
@@ -798,6 +986,7 @@ public class CPU {
     regSet.clearHalfCarryFlag();
 
     if (source != null) regSet.setByte(source, result & 0xFF);
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
   
   /**
@@ -805,7 +994,7 @@ public class CPU {
    * @param source
    */
   void RRC(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = value >> 1;
     
     if ((value & 0x1) > 0) {
@@ -821,6 +1010,7 @@ public class CPU {
     regSet.clearHalfCarryFlag();
 
     if (source != null) regSet.setByte(source, result & 0xFF);
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
   
   /**
@@ -828,7 +1018,7 @@ public class CPU {
    * @param source
    */
   void RR(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = value >> 1;
     
     if (regSet.getCarryFlag()) { result |= 0x80; }
@@ -842,6 +1032,7 @@ public class CPU {
     regSet.clearHalfCarryFlag();
 
     if (source != null) regSet.setByte(source, result & 0xFF);
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
 
   /**
@@ -849,7 +1040,7 @@ public class CPU {
    * @param source
    */
   void SLA(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = value << 1;
 
     if ((result & 0x100) > 0) { regSet.setCarryFlag(); }
@@ -862,6 +1053,7 @@ public class CPU {
     regSet.clearHalfCarryFlag();
 
     if (source != null) regSet.setByte(source, result & 0xFF);
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
   
   /**
@@ -869,7 +1061,7 @@ public class CPU {
    * @param source
    */
   void SRA(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = (value >> 1) + (value & 0x80);
     
     if ((value & 0x1) > 0) { regSet.setCarryFlag(); }
@@ -882,6 +1074,7 @@ public class CPU {
     regSet.clearHalfCarryFlag();
 
     if (source != null) regSet.setByte(source, result & 0xFF);
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
   
   /**
@@ -889,7 +1082,7 @@ public class CPU {
    * @param source
    */
   void SRL(Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = (value >> 1);
     
     if ((value & 0x1) > 0) { regSet.setCarryFlag(); }
@@ -902,6 +1095,7 @@ public class CPU {
     regSet.clearHalfCarryFlag();
 
     if (source != null) regSet.setByte(source, result & 0xFF);
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
 
   //#endregion
@@ -914,7 +1108,7 @@ public class CPU {
    * @param source
    */
   void BIT(int b, Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     
     if ((value & (1 << b)) > 0) { regSet.clearZeroFlag(); }
     else { regSet.setZeroFlag(); }
@@ -929,10 +1123,11 @@ public class CPU {
    * @param source
    */
   void SET(int b, Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
-    value |= 1 << b;
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
+    int result = value | 1 << b;
 
-    if (source != null) { regSet.setByte(source, value); }
+    if (source != null) { regSet.setByte(source, result); }
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
 
   /**
@@ -941,10 +1136,11 @@ public class CPU {
    * @param source
    */
   void RES(int b, Reg_8 source) {
-    int value = (source != null) ? regSet.getByte(source) : regSet.getWord(Reg_16.HL);
-    value &= ~(1 << b);
+    int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
+    int result = value & ~(1 << b);
 
-    if (source != null) { regSet.setByte(source, value); }
+    if (source != null) { regSet.setByte(source, result); }
+    else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
 
   //#endregion
@@ -955,7 +1151,8 @@ public class CPU {
    * Jump to address at nn.
    */
   void JP() {
-    short operand = 0; // Ideally read from memory to get the address?
+    short operand = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
+    current_opcode = "JP " + String.format("%04x", operand);
     regSet.setPC(operand);
   }
 
@@ -964,7 +1161,9 @@ public class CPU {
    * @param flag_condition
    */
   void JP_CC(CC_t flag_condition) {
-    short operand = 0; // Ideally read from memory to get the address?
+    short operand = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
+    regSet.setPC(regSet.getPC() + 2);
+    
     switch(flag_condition) {
       case NZ: if (!regSet.getZeroFlag()) regSet.setPC(operand); break;
       case Z:  if (regSet.getZeroFlag()) regSet.setPC(operand); break;
@@ -984,7 +1183,9 @@ public class CPU {
    * Add n to current address and jump to it.
    */
   void JR() {
-
+    byte operand = (byte)(memMap.readMemory(regSet.getPC()));
+    current_opcode = "JR " + String.format("%04x", operand);
+    regSet.setPC(regSet.getPC() + operand);
   }
 
   /**
@@ -992,7 +1193,15 @@ public class CPU {
    * @param flag_condition
    */
   void JR_CC(CC_t flag_condition) {
+    byte operand = (byte)(memMap.readMemory(regSet.getPC()));
+    regSet.setPC(regSet.getPC() + 1);
 
+    switch(flag_condition) {
+      case NZ: if (!regSet.getZeroFlag()) regSet.setPC(regSet.getPC() + operand); break;
+      case Z:  if (regSet.getZeroFlag()) regSet.setPC(regSet.getPC() + operand); break;
+      case NC: if (!regSet.getCarryFlag()) regSet.setPC(regSet.getPC() + operand); break;
+      case C:  if (regSet.getCarryFlag()) regSet.setPC(regSet.getPC() + operand); break;
+    }
   }
 
   //#endregion
@@ -1003,7 +1212,9 @@ public class CPU {
    * Push address of next instruction onto stack and then jump to address nn.
    */
   void CALL() {
-
+    short operand = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
+    PUSH(Reg_16.PC);
+    regSet.setPC(operand);
   }
 
   /**
@@ -1012,7 +1223,15 @@ public class CPU {
    * @param flag_condition
    */
   void CALL_CC(CC_t flag_condition) {
-
+    short operand = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
+    regSet.setPC(regSet.getPC() + 2);
+    PUSH(Reg_16.PC);
+    switch(flag_condition) {
+      case NZ: if (!regSet.getZeroFlag()) regSet.setPC(operand); break;
+      case Z:  if (regSet.getZeroFlag()) regSet.setPC(operand); break;
+      case NC: if (!regSet.getCarryFlag()) regSet.setPC(operand); break;
+      case C:  if (regSet.getCarryFlag()) regSet.setPC(operand); break;
+    }
   }
 
   //#endregion
@@ -1024,7 +1243,11 @@ public class CPU {
    * @param n
    */
   void RST(int n) {
+    PUSH(Reg_16.PC);
+    regSet.setPC(0x0000 + (0xFF & n));
 
+    // This is so it crashes since
+    int t = 1/0;
   }
 
   //#endregion
@@ -1035,7 +1258,9 @@ public class CPU {
    * Pop two bytes from stack & jump to that address.
    */
   void RET() {
-
+    short operand = (short)(((memMap.readMemory(regSet.getSP()) + 1) << 8) + (memMap.readMemory(regSet.getSP())));
+    regSet.setSP(regSet.getSP() + 2);
+    regSet.setPC(operand);
   }
 
   /**
@@ -1044,14 +1269,26 @@ public class CPU {
    * @param flag_condition
    */
   void RET_CC(CC_t flag_condition) {
+    short operand = (short)(((memMap.readMemory(regSet.getSP()) + 1) << 8) + (memMap.readMemory(regSet.getSP())));
+    regSet.setSP(regSet.getSP() + 2);
 
+    switch(flag_condition) {
+      case NZ: if (!regSet.getZeroFlag()) regSet.setPC(operand); break;
+      case Z:  if (regSet.getZeroFlag()) regSet.setPC(operand); break;
+      case NC: if (!regSet.getCarryFlag()) regSet.setPC(operand); break;
+      case C:  if (regSet.getCarryFlag()) regSet.setPC(operand); break;
+    }
   }
   
   /**
    * Pop two bytes from stack & jump to that address, then enable interrupts.
    */
   void RETI() {
+    short operand = (short)(((memMap.readMemory(regSet.getSP()) + 1) << 8) + (memMap.readMemory(regSet.getSP())));
+    regSet.setSP(regSet.getSP() + 2);
+    regSet.setPC(operand);
 
+    EI();
   }
 
   //#endregion
@@ -1069,7 +1306,7 @@ public class CPU {
   public String current_opcode = "not decoded";
   
   /**
-   * 
+   * Opcodes of the form: 00xx xxxx
    * @param y_arg
    * @param z_arg
    * @param p_arg
@@ -1077,54 +1314,95 @@ public class CPU {
    * @return
    */
   public int x0_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
+    int n_arg = (int)memMap.readMemory((regSet.getPC()));
+    short nn_arg = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
+
     switch(z_arg) {
       case 0:
         switch(y_arg) {
-          case 0: NOP(); current_opcode = "NOP"; return M_CYCLE;
-          case 1: LD_16_IM(Reg_16.SP, false); current_opcode = "LD (nn), SP"; return M_CYCLE;
-          case 2: STOP(); current_opcode = "STOP"; return M_CYCLE;
-          case 3: JR(); current_opcode = "JR"; return M_CYCLE;
-          default: JR_CC(cc_args[y_arg-4]); current_opcode = "JR " + cc_args[y_arg-4] + ", d"; return M_CYCLE;
+          case 0: current_opcode = "NOP";
+            NOP();
+            return M_CYCLE;
+          case 1: current_opcode = "LD (" + String.format("%04x", nn_arg) + "), SP";
+            LD_16_IM(Reg_16.SP, false);
+            return M_CYCLE;
+          case 2: current_opcode = "STOP";
+            STOP();
+            return M_CYCLE;
+          case 3: current_opcode = "JR";
+            JR();
+            return M_CYCLE;
+          default: current_opcode = "JR " + cc_args[y_arg-4] + ", d";
+            JR_CC(cc_args[y_arg-4]);
+            return M_CYCLE;
         }
       case 1:
-        if (q_arg == 0) {
-          LD_16_IM(rp_args[p_arg], true); current_opcode = "LD " + rp_args[p_arg] + ", nn"; return M_CYCLE;
-        } else {
-          ADD_HL(rp_args[p_arg]); current_opcode = "ADD HL, " + rp_args[p_arg]; return M_CYCLE;
+        if (q_arg == 0) { current_opcode = "LD " + rp_args[p_arg] + ", " + String.format("%04x", nn_arg);
+          LD_16_IM(rp_args[p_arg], true);
+          return M_CYCLE;
+        } else { current_opcode = "ADD HL, " + rp_args[p_arg];
+          ADD_HL(rp_args[p_arg]);
+          return M_CYCLE;
         }
       case 2:
         if (q_arg == 0) {
           switch(p_arg) {
-            case 0: LD_IN(Reg_16.BC, false); current_opcode = "LD (BC), A"; break;
-            case 1: LD_IN(Reg_16.DE, false); current_opcode = "LD (BC), A"; break;
-            case 2:   LDI(Reg_16.HL, false); current_opcode = "LDI (HL+), A"; break;
-            case 3:   LDD(Reg_16.HL, false); current_opcode = "LDD (HL-), A"; break;
+            case 0: current_opcode = "LD (BC), A";
+              LD_IN(Reg_16.BC, false);
+              return M_CYCLE;
+            case 1: current_opcode = "LD (BC), A";
+              LD_IN(Reg_16.DE, false);
+              return M_CYCLE;
+            case 2: current_opcode = "LDI (HL+), A";
+              LDI(Reg_16.HL, false);
+              return M_CYCLE;
+            case 3: current_opcode = "LDD (HL-), A";
+              LDD(Reg_16.HL, false);
+              return M_CYCLE;
           }
         } else {
           switch(p_arg) {
-            case 0: LD_IN(Reg_16.BC, true); current_opcode = "LD A, (BC)"; break;
-            case 1: LD_IN(Reg_16.DE, true); current_opcode = "LD A, (DE)"; break;
-            case 2:   LDI(Reg_16.HL, true); current_opcode = "LDI A, (HL)"; break;
-            case 3:   LDD(Reg_16.HL, true); current_opcode = "LDD A, (HL)"; break;
+            case 0: current_opcode = "LD A, (BC)";
+              LD_IN(Reg_16.BC, true);
+              return M_CYCLE;
+            case 1: current_opcode = "LD A, (DE)";
+              LD_IN(Reg_16.DE, true);
+              return M_CYCLE;
+            case 2: current_opcode = "LDI A, (HL)";
+              LDI(Reg_16.HL, true);
+              return M_CYCLE;
+            case 3: current_opcode = "LDD A, (HL)";
+              LDD(Reg_16.HL, true);
+              return M_CYCLE;
           }
         }
         break;
       case 3:
-        if (q_arg == 0) {
-          INC_16(rp_args[p_arg]);  current_opcode = "INC " + rp_args[p_arg]; return M_CYCLE;
-        } else {
-          DEC_16(rp_args[p_arg]);  current_opcode = "DEC " + rp_args[p_arg]; return M_CYCLE;
+        if (q_arg == 0) { current_opcode = "INC " + rp_args[p_arg];
+          INC_16(rp_args[p_arg]);
+          return M_CYCLE;
+        } else { current_opcode = "DEC " + rp_args[p_arg];
+          DEC_16(rp_args[p_arg]);
+          return M_CYCLE;
         }
-      case 4:   INC(r_args[y_arg]); current_opcode = "INC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)"); return M_CYCLE;
-      case 5:   DEC(r_args[y_arg]); current_opcode = "DEC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)"); return M_CYCLE;
-      case 6: LD_IM(r_args[y_arg]); current_opcode = "LD "  + ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " + "n"; return M_CYCLE;
-      case 7: Z7Map.get(z7_args[y_arg]).invoke(); current_opcode = "" + Z7_t.values()[y_arg]; return M_CYCLE;
+      case 4: current_opcode = "INC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)");
+        INC(r_args[y_arg]);
+        return M_CYCLE;
+      case 5: current_opcode = "DEC " + (r_args[y_arg] != null ? r_args[y_arg].toString() : "(HL)");
+        DEC(r_args[y_arg]);
+        return M_CYCLE;
+      case 6: current_opcode = "LD "  + ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " + "n";
+        LD_IM(r_args[y_arg]);
+        return M_CYCLE;
+      case 7: current_opcode = "" + Z7_t.values()[y_arg];
+        Z7Map.get(z7_args[y_arg]).invoke();
+        return M_CYCLE;
     }
     return 0;
   }
 
   /**
-   * 
+   * Opcodes of the form: 01xx xxxx
    * @param y_arg
    * @param z_arg
    * @param p_arg
@@ -1132,33 +1410,30 @@ public class CPU {
    * @return
    */
   public int x1_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
-    if ((y_arg == 6) && (z_arg == 6)) { HALT(); current_opcode = "HALT"; return M_CYCLE; }
-    else {
+    if ((y_arg == 6) && (z_arg == 6)) { current_opcode = "HALT";
+      HALT();
+      return M_CYCLE;
+    } else { current_opcode = "LD " + ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
       LD(r_args[y_arg], r_args[z_arg]);
-
-      current_opcode = "LD " +
-      ((r_args[y_arg] != null) ? r_args[y_arg].toString() : "(HL)") + ", " +
-      ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
       return M_CYCLE;
     }
   }
 
   /**
-   * 
+   * Opcodes of the form: 10xx xxxx
    * @param y_arg
    * @param z_arg
    * @param p_arg
    * @param q_arg
    * @return
    */
-  public int x2_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
+  public int x2_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) { current_opcode = Alu_t.values()[y_arg] + " A, " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
     AluMap.get(alu_args[y_arg]).invoke(r_args[z_arg]);
-    current_opcode = Alu_t.values()[y_arg] + " A, " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
     return M_CYCLE;
   }
 
   /**
-   * 
+   * Opcodes of the form: 11xx xxxx
    * @param y_arg
    * @param z_arg
    * @param p_arg
@@ -1166,49 +1441,98 @@ public class CPU {
    * @return
    */
   public int x3_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
+    int n_arg = (int)memMap.readMemory((regSet.getPC()));
+    short nn_arg = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
+
     switch(z_arg) {
       case 0:
-        if (y_arg < 4) { RET_CC(cc_args[y_arg]); current_opcode = "RET " + cc_args[y_arg]; return M_CYCLE; }
-        else {
+        if (y_arg < 4) { current_opcode = "RET " + cc_args[y_arg];
+          RET_CC(cc_args[y_arg]);
+          return M_CYCLE;
+        } else {
           switch(y_arg) {
-            case 0: LDH(false); current_opcode = "LDH (n), A"; return M_CYCLE;
-            case 1: ADD_SP(); current_opcode = "ADD SP, d"; return M_CYCLE;
-            case 2: LDH(true); current_opcode = "LDH A, (n)"; return M_CYCLE;
-            case 3: LDHL(); current_opcode = "LDHL SP, n"; return M_CYCLE;
+            case 4: current_opcode = "LDH (" + String.format("ff00 + %02x",n_arg) + "), A";
+              LDH(false);
+              return M_CYCLE;
+            case 5: current_opcode = "ADD SP, d";
+              ADD_SP();
+              return M_CYCLE;
+            case 6: current_opcode = "LDH A, (" + String.format("ff00 + %02x",n_arg) + ")";
+              LDH(true);
+              return M_CYCLE;
+            case 7: current_opcode = "LDHL SP, " + String.format("%02x",n_arg) + "";
+              LDHL();
+              return M_CYCLE;
           }
         }
       case 1:
-        if (q_arg == 0) { POP(rp2_args[p_arg]); current_opcode = "POP " + rp2_args[p_arg]; return M_CYCLE; }
+        if (q_arg == 0) { current_opcode = "POP " + rp2_args[p_arg];
+          POP(rp2_args[p_arg]);
+          return M_CYCLE; }
         else {
           switch(p_arg) {
-            case 0: RET(); current_opcode = "RET"; return M_CYCLE;
-            case 1: RETI(); current_opcode = "RETI"; return M_CYCLE;
-            case 2: JP_HL(); current_opcode = "JP (HL)"; return M_CYCLE;
-            case 3: LD_16(Reg_16.SP, Reg_16.HL); current_opcode = "LD SP, HL"; return M_CYCLE;
+            case 0: current_opcode = "RET";
+              RET(); return M_CYCLE;
+            case 1: current_opcode = "RETI";
+              RETI(); return M_CYCLE;
+            case 2: current_opcode = "JP (HL)";
+              JP_HL(); return M_CYCLE;
+            case 3: current_opcode = "LD SP, HL";
+              LD_16(Reg_16.SP, Reg_16.HL); return M_CYCLE;
+            default: return M_CYCLE;
           }
         }
       case 2:
-        if (y_arg < 4) { JP_CC(cc_args[y_arg]); current_opcode = "JP " + cc_args[y_arg] + ", nn"; return M_CYCLE; }
-        else {
+        if (y_arg < 4) { current_opcode = "JP " + cc_args[y_arg] + ", " + String.format("%04x", nn_arg);
+          JP_CC(cc_args[y_arg]);
+          return M_CYCLE;
+        } else {
           switch(y_arg) {
-            case 4: LD_C(false); current_opcode = "LD (0xFF00+C),A"; return M_CYCLE;
-            case 5: LD_A(false); current_opcode = "LD (nn),A"; return M_CYCLE;
-            case 6: LD_C(true); current_opcode = "LD A,(0xFF00+C)"; return M_CYCLE;
-            case 7: LD_A(true); current_opcode = "LD A,(nn)"; return M_CYCLE;
+            case 4: current_opcode = "LD (0xFF00+C),A";
+              LD_C(false);
+              return M_CYCLE;
+            case 5: current_opcode = "LD (" + String.format("%04x", nn_arg) + "),A";
+              LD_A(false);
+              return M_CYCLE;
+            case 6: current_opcode = "LD A,(0xFF00+C)";
+              LD_C(true);
+              return M_CYCLE;
+            case 7: current_opcode = "LD A,(" + String.format("%04x", nn_arg) + ")";
+              LD_A(true);
+              return M_CYCLE;
             default: return M_CYCLE;
           }
         }
       case 3:
-        if (y_arg == 0) { JP(); current_opcode = "JP nn" ; return M_CYCLE; }
-        else if (y_arg == 6) { DI(); current_opcode = "DI"; return M_CYCLE; }
-        else if (y_arg == 7) { EI(); current_opcode = "EI"; return M_CYCLE; }
+        if (y_arg == 0) {
+          JP();
+          return M_CYCLE;
+        } else if (y_arg == 6) { current_opcode = "DI";
+          DI();
+          return M_CYCLE;
+        } else if (y_arg == 7) { current_opcode = "EI";
+          EI();
+          return M_CYCLE;
+        }
       case 4: 
-        if (y_arg < 4) { CALL_CC(cc_args[y_arg]); current_opcode = "Call " + cc_args[y_arg] + ", nn"; return M_CYCLE; }
+        if (y_arg < 4) { current_opcode = "Call " + cc_args[y_arg] + ", " + String.format("%04x", nn_arg);
+          CALL_CC(cc_args[y_arg]);
+          return M_CYCLE;
+        }
       case 5:
-        if (q_arg == 0) { PUSH(rp2_args[p_arg]); current_opcode = "PUSH " + rp2_args[p_arg]; return M_CYCLE; }
-        else { CALL(); current_opcode = "CALL nn"; return M_CYCLE; }
-      case 6: AluImMap.get(alu_args[y_arg]).invoke(); current_opcode = Alu_t.values()[y_arg] + " A, nn"; return M_CYCLE;
-      case 7: RST(y_arg*8); current_opcode = "RST " + String.format("%x", y_arg*8); return M_CYCLE;
+        if (q_arg == 0) { current_opcode = "PUSH " + rp2_args[p_arg];
+          PUSH(rp2_args[p_arg]);
+          return M_CYCLE;
+        } else { current_opcode = "CALL " + String.format("%04x", nn_arg);
+          CALL();
+          return M_CYCLE;
+        }
+      case 6: current_opcode = Alu_t.values()[y_arg] + " A, " + String.format("%04x", nn_arg);
+        AluImMap.get(alu_args[y_arg]).invoke();
+        return M_CYCLE;
+      case 7: current_opcode = "RST " + String.format("%x", y_arg*8);
+        RST(y_arg*8);
+        return M_CYCLE;
     }
     return 0;
   }
@@ -1227,7 +1551,7 @@ public class CPU {
   public int executeOpcode(short opcode) {
     // CB-prefixed opcodes
     if (opcode == 0xCB) {
-      //opcode = ReadMemory(regSet.getPC());
+      opcode = (short)memMap.readMemory(regSet.getPC());
       regSet.setPC(regSet.getPC() + 1);
       return executeExtendedOpcode(opcode);
     }
@@ -1254,6 +1578,7 @@ public class CPU {
   }
 
   /**
+   * Similar to executeOpcode except that it works with the extended opcode set
    * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
    * @return
    */
@@ -1265,14 +1590,18 @@ public class CPU {
     current_opcode = String.format("Extended Opcode... x: %d, y: %d, z: %d", x_arg, y_arg, z_arg);
 
     switch(x_arg) {
-      case 0 :
+      case 0 : current_opcode = Rot_t.values()[y_arg] + " " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
         RotMap.get(rot_args[y_arg]).invoke(r_args[z_arg]);
-        current_opcode = Rot_t.values()[y_arg] + " " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
         return M_CYCLE*2;
-      case 1: BIT(y_arg, r_args[z_arg]); current_opcode = "BIT " + y_arg + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)"); return M_CYCLE*2;
-      case 2: RES(y_arg, r_args[z_arg]); current_opcode = "RES " + y_arg + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)"); return M_CYCLE*2;
-      case 3: SET(y_arg, r_args[z_arg]); current_opcode = "SET " + y_arg + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)"); return M_CYCLE*2;
-
+      case 1: current_opcode = "BIT " + y_arg + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
+        BIT(y_arg, r_args[z_arg]);
+        return M_CYCLE*2;
+      case 2: current_opcode = "RES " + y_arg + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
+        RES(y_arg, r_args[z_arg]);
+        return M_CYCLE*2;
+      case 3: current_opcode = "SET " + y_arg + ", " + ((r_args[z_arg] != null) ? r_args[z_arg].toString() : "(HL)");
+        SET(y_arg, r_args[z_arg]);
+        return M_CYCLE*2;
       default:
         //assert(false);
         return 0; // unhandled extended opcode
@@ -1285,7 +1614,7 @@ public class CPU {
    */
   int executeNextOpcode() {
     int res = 0;
-    short opcode = 0;//ReadMemory(regSet.getPC());
+    short opcode = (short)memMap.readMemory(regSet.getPC());
     regSet.setPC(regSet.getPC() + 1);
     res =	executeOpcode(opcode);
     return res ;
