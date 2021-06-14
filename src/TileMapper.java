@@ -220,17 +220,24 @@ public class TileMapper extends JFrame {
 
         String OneTile = TileMaker(mem,500);
 
-        int[][] palette_2 =  new int[][] {
+        int[][] warm_palette =  new int[][] {
             {124,63,88},
             {235,107,111},
             {249,168,117},
             {255,246,211}
         };
+        
+        int[][] cool_palette =  new int[][] {
+            {98,46,76},
+            {117, 80, 232},
+            {96, 143, 207},
+            {139, 229, 255}
+        };
 
         System.out.println("Before JFrame");
         TileMapper Til = new TileMapper();
 
-        Til.changePalette(palette_2);
+        Til.changePalette(cool_palette);
 
         Til.paintTile(OneTile);
 
