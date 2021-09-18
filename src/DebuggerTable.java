@@ -48,7 +48,7 @@ public class DebuggerTable extends JPanel {
 		// This adjusts to the size of the memory for flexibility as there are several ROMS made for the Gameboy
 		Object[][] data = new Object[mem.size()][columnNames.length];
 
-		CPU testCPU = new CPU();
+		CPU testCPU = new CPU(new RegisterSet(), new MemoryMap());
 
 		// 1st is the index of the array or "program counter"
 		// Followed by the memory dump of the ROM,

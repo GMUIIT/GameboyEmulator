@@ -136,7 +136,7 @@ public class Program {
    * We might make that the file name of the ROM it runs for all I know... (edited by Angel)
    */
   public static void main(String[] args) {
-    cpu = new CPU();
+    cpu = new CPU(new RegisterSet(), new MemoryMap());
 
     // Main loop for the emulator
     while(true) {

@@ -13,20 +13,23 @@ public class CPU {
    * Constructor function for the class.
    * Not sure what to do with it... (Edited by Angel)
    */
-  public CPU() {
+  public CPU(RegisterSet regSet, MemoryMap memMap) {
+    this.regSet = regSet;
+    this.memMap = memMap;
+
     System.out.println("This is a new CPU!");
     initializeHashmaps();
   }
 
 //#region ---- ---- ---- ---- ----  Memory Access  ---- ---- ---- ---- ---- ---- ---- ----
-  public RegisterSet regSet = new RegisterSet();
+  public RegisterSet regSet;
 
   // private RegisterSet save0 = new RegisterSet(0, 0, 0, 0, 0, 0);
   // private RegisterSet save1 = new RegisterSet(0, 0, 0, 0, 0, 0);
   // private RegisterSet save2 = new RegisterSet(0, 0, 0, 0, 0, 0);
   // private RegisterSet save3 = new RegisterSet(0, 0, 0, 0, 0, 0);
 
-  public MemoryMap memMap = new MemoryMap();
+  public MemoryMap memMap;
 
 //#endregion
 
@@ -1247,7 +1250,7 @@ public class CPU {
     regSet.setPC(0x0000 + (0xFF & n));
 
     // This is so it crashes since
-    int t = 1/0;
+    // int t = 1/0;
   }
 
   //#endregion
@@ -1773,8 +1776,7 @@ public class CPU {
    * @param args
    */
   public static void main(String[] args) {
-    CPU cpu = new CPU();
-    cpu.regSet = new RegisterSet();
+    CPU cpu = new CPU(new RegisterSet(), new MemoryMap());
 
     System.out.println("CPU Tests....");
 
