@@ -12,7 +12,8 @@ import java.util.concurrent.*;
  * run with this command:
  * java -cp compiled Program
  */
-public class Program {  
+public class Program
+{
   private static CPU cpu;
   private static TimeUnit time = TimeUnit.MILLISECONDS;
 
