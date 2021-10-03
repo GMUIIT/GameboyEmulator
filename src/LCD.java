@@ -2,11 +2,13 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.awt.Color;
 
 import javax.swing.*;
+import javax.swing.event.MouseInputAdapter;
 
 class Pixels extends JPanel
 {
@@ -26,13 +28,13 @@ class Pixels extends JPanel
     private List<Rectangle> squares = new ArrayList<Rectangle>();
 
     /**
-     * 
+     *
      * @param palette
      */
     public void changePalette(int[][] palette) { currentpalette = palette; }
 
     /**
-     * 
+     *
      * @param x
      * @param y
      * @param width
@@ -103,6 +105,17 @@ public class LCD extends JFrame {
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         getContentPane().add(pixels);
+
+        pixels.addMouseListener(new MouseInputAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                System.out.println("Current Memory Address:");
+
+                for (int i = 0; i < 32; i++) {
+                    System.out.print((int)_memoryMap.readMemory(0x8010 + i) + " ");
+                }
+            }
+        });
     }
 
     public void changePalette(int[][] palette) { pixels.changePalette(palette); }
@@ -119,15 +132,15 @@ public class LCD extends JFrame {
 
         if ((controlReg & 0b0100000) > 0) {
             // Window Tile map display 9C00-9FFF
-            // 9C00-9FFF = 1024. 1024 / 128 = 8 rows. Tile IDs
+            // 9C00-9FFF = 1024 = 32x32 Tile IDs
             for (int i = 0x9c00; i <= 0x9FFF; i++) {
-                currentTileMap[i - 0x9c00] = _memoryMap.readMemory(i);
+                currentTileMap[i - 0x9C00] = _memoryMap.getVRAM()[i - 0x8000]; //_memoryMap.readMemory(i);
             }
         } else {
             // Window Tile map display 9800-9BFF
-            // 9800-9BFF = 1024. 1024 / 128 = 8 rows. Tile IDs
+            // 9800-9BFF = 1024 = 32x32 Tile IDs
             for (int i = 0x9800; i <= 0x9BFF; i++) {
-                currentTileMap[i - 0x9800] = _memoryMap.readMemory(i);
+                currentTileMap[i - 0x9800] = _memoryMap.getVRAM()[i - 0x8000]; //_memoryMap.readMemory(i);
             }
         }
 
@@ -137,13 +150,13 @@ public class LCD extends JFrame {
             // BG & Window Tile Data Select 8000-8FFF
             // 4096 rows 4096 / 32 = 128 types of tiles
             for (int i = 0x8000; i <= 0x8FFF; i++) {
-                currentBGWindow[i - 0x8000] = _memoryMap.readMemory(i);
+                currentBGWindow[i - 0x8000] = _memoryMap.getVRAM()[i - 0x8000]; //_memoryMap.readMemory(i);
             }
         } else {
             // BG & Window Tile Data Select 8800-97FF
             // 4096 rows 4096 / 32 = 128 types of tiles
             for (int i = 0x8800; i <= 0x97FF; i++) {
-                currentBGWindow[i - 0x8800] = _memoryMap.readMemory(i);
+                currentBGWindow[i - 0x8800] = _memoryMap.getVRAM()[i - 0x8000]; //_memoryMap.readMemory(i);
             }
         }
 
@@ -152,8 +165,8 @@ public class LCD extends JFrame {
         bgDisplay = (controlReg & 0b0000001) > 0;
 
         /*
-        taken from http://www.codeslinger.co.uk/pages/projects/gameboy/graphics.html
-        Taken from the pandocs:
+            taken from http://www.codeslinger.co.uk/pages/projects/gameboy/graphics.html
+            Taken from the pandocs:
 
             Bit 7 - LCD Display Enable (0=Off, 1=On)
             Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
@@ -166,68 +179,42 @@ public class LCD extends JFrame {
         */
 
         if (LCDEnable) {
-            //Draw background here
+            // Draw background here
             if (bgDisplay) { drawBackgrounds(); }
 
-            //Draw sprites here
+            // Draw sprites here
             if (spriteEnabled) { drawSprites(); }
 
-            //Draw windows 
+            // Draw windows
             if (windowDisplay) { drawWindows(); }
         }
     }
 
     /**
-     * 
+     *
      */
     public int[] tileFormatter(int tileId, boolean bigOrNah)
     {
-        /*int startingAddress = tileId * 4;
+        int startingAddress = tileId*16;
         int[] tilePixels = new int[64];
 
         // Each tile stores a 2-bit color.
-        // 0
-        // TileID = 0
-        // 0 + (0)
-        // 0 + 2
+        for (int i = 0; i < 8; i++) {
+            int currentPixel_H = currentBGWindow[startingAddress + (i*2)];
+            int currentPixel_L = currentBGWindow[startingAddress + (i*2) + 1];
 
-        for (int x = 0; x < 8; x++) {
-            int currentPixel_H = currentBGWindow[startingAddress + (x*2)];
-            int currentPixel_L = currentBGWindow[startingAddress + (x*2) + 1];
-
-            for (int n = 0; n < 8; n++) {
-                tilePixels[x * n] = (((currentPixel_H & (0x80 >> n)) > 0) ? 1 : 0) + (((currentPixel_L & (0x80 >> n)) > 0) ? 2 : 0);
-            }
-        }*/
-
-        // 0x8000 - 0x8010 = 16 addresses
-
-        // FF 00 7E FF 85 81 89 83 93 85 A5 8B C9 97 7E FF
-
-        int[][] tilePixels = new int[8][8];
-        int[] tilePixels_2 = new int[64];
-
-        for (int i = 0; i < 8; i++)
-        {
-            int someVal1 = _memoryMap.readMemory(0x9000 + (i*2));
-            int someVal2 = _memoryMap.readMemory(0x9000 + (i*2) + 1);
-            
-            for (int j = 0; j < 8; j++)
-            {
-                tilePixels[i][j] = (((someVal1 & (0x01 << j)) > 0) ? 0 : 2) + (((someVal2 & (0x01 << j)) > 0) ? 0 : 1);
+            for (int j = 0; j < 8; j++) {
+                tilePixels[i + j*8] = (((currentPixel_H & (0x80 >> j)) > 0) ? 1 : 0) + (((currentPixel_L & (0x80 >> j)) > 0) ? 2 : 0);
             }
         }
-        
-        for (int k = 0; k < 64; k++)
-        {
-            tilePixels_2[k] = tilePixels[k/8][k%8];
-        }
 
-        return tilePixels_2;
+        return tilePixels;
     }
 
+    int currentVal = 0;
+
     public void drawBackgrounds() {
-        
+
         int[][] tempScreen = new int[256][256];
         int[] currentTile = new int[64];
 
@@ -236,14 +223,18 @@ public class LCD extends JFrame {
         // i == tile position
         // j == tile pixel position
 
-        for (int i = 0; i < currentTileMap.length; i++) // 32 x 32 times
+        for (int i = 0; i < 1024; i++) // 32 x 32 times
         {
             currentTile = tileFormatter(currentTileMap[i], false);
 
-            for (int j = 0; j < currentTile.length; j++) // 8 x 8 times
+            for (int j = 0; j < 64; j++) // 8 x 8 times
             {
-                int x = ((j % 8) + ((i * 8) % 32)) % 255;
-                int y = ((j / 8) + ((i * 8) / 32)) % 255;
+                // int x = ((j % 8) + ((i * 8) % 32)) % 255;
+                // int y = ((j / 8) + ((i * 8) / 32)) % 255;
+
+                int x = (j % 8) + 8*(i % 32);
+                int y = (j / 8) + 8*(i / 32);
+
                 tempScreen[x][y] = currentTile[j];
             }
         }
@@ -253,16 +244,16 @@ public class LCD extends JFrame {
         {
             for(int j = 0; j < screenData[i].length; j++) //This would run 144 times.
             {
-                int currentXPixel = (i) % 255;
-                int currentYPixel = (j) % 255; 
+                int currentXPixel = (i) % 256;
+                int currentYPixel = (j) % 256;
                 screenData[i][j] = tempScreen[currentXPixel][currentYPixel];
             }
         }
     }
 
     public void drawSprites() {
-        
-        
+
+
     }
 
     public void drawWindows() {
@@ -271,8 +262,10 @@ public class LCD extends JFrame {
     }
 
     public void renderGraphics() {
-        int height = 5;
-        int width = 5;
+        int height = 5; // getHeight() / 160;
+        int width = 5; //getWidth() / 144;
+
+        setVisible(true);
 
         //pixels.clear();
         // for (int x = 0; x < screenData.length; x++) {
@@ -285,10 +278,10 @@ public class LCD extends JFrame {
             for (int j = 0; j < screenData[i].length; j++) {
                 int currentChar = screenData[i][j];
 
-                int x = j * 10;
-                int y = i * 10;
+                int x = j * height;
+                int y = i * width;
 
-                pixels.addSquare(x, y, 10, 10, currentChar);
+                pixels.addSquare(x, y, height, width, 3 - currentChar);
             }
         }
 

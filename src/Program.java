@@ -3,12 +3,12 @@ import java.util.concurrent.*;
 
 /**
  * This is the main program code. (Edited by Angel)
- * 
+ *
  * If you want to compile and run this, open the src folder in the terminal.
- * 
+ *
  * You compile this with this command:
  * javac -d compiled Program.java
- * 
+ *
  * run with this command:
  * java -cp compiled Program
  */
@@ -38,7 +38,7 @@ public class Program
       int total = 0, nRead = 0;
 
       while((nRead = inputStream.read(cartridgeMemory)) != -1) { total += nRead; }
-      inputStream.close();        
+      inputStream.close();
 
       System.out.println("Read " + total + " bytes");
     }
@@ -47,8 +47,6 @@ public class Program
 
     return cartridgeMemory;
   }
-
-
 
   /**
    * Override Method for loadCartridge that by default runs the Tetris Rom
@@ -136,6 +134,9 @@ public class Program
       // Debugging:
       // startDebugAt((short)0x0208, 150);
       // breakpointAtAddress((short)0x0208);
+
+      startDebugAt((short)0x0100, 150);
+      breakpointAtAddress((short)0x0100);
     }
 
     lcd.renderGraphics();
@@ -160,13 +161,12 @@ public class Program
     lcd = new LCD(memoryMap, interrupts);
 
     lcd.pack();
-    lcd.setVisible(true);
-    lcd.repaint();
+    // lcd.repaint();
 
     // Main loop for the emulator
     while(true) {
       emulatorUpdate();
-      delay(16);  // This is so it tries to update the cpu at 60 hz. Might be better to compare times instead.
+      delay(1);  // This is so it tries to update the cpu at 60 hz. Might be better to compare times instead.
       System.out.println(".");
     }
   }

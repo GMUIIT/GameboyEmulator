@@ -26,20 +26,20 @@ class Squares extends JPanel
         {136, 192, 112},
         {224, 248, 208}
     };
-    
+
     int[][] currentpalette = defaultPalette;
 
     private List<Color> colors = new ArrayList<Color>();
     private List<Rectangle> squares = new ArrayList<Rectangle>();
 
     /**
-     * 
+     *
      * @param palette
      */
     public void changePalette(int[][] palette) { currentpalette = palette; }
 
     /**
-     * 
+     *
      * @param x
      * @param y
      * @param width
@@ -84,7 +84,7 @@ public class TileMapper extends JFrame {
     }
 
     /**
-     * 
+     *
      * @param palette
      */
     public void changePalette(int[][] palette) {
@@ -92,7 +92,7 @@ public class TileMapper extends JFrame {
     }
 
     /**
-     * 
+     *
      * @param TileCode
      */
     public void paintTile(String TileCode,int a, int b) {
@@ -112,7 +112,7 @@ public class TileMapper extends JFrame {
     }
 
     /**
-     * 
+     *
      * @param hex
      * @param arg
      * @return
@@ -143,7 +143,7 @@ public class TileMapper extends JFrame {
     }
 
     /**
-     * 
+     *
      * @param l
      * @return
      */
@@ -159,7 +159,7 @@ public class TileMapper extends JFrame {
     }
 
     /**
-     * 
+     *
      * @param x
      * @param y
      * @return
@@ -211,7 +211,7 @@ public class TileMapper extends JFrame {
 
                 // Adding the memory 8 bytes at a time
                 if (log == 1) {
-                    System.out.println("val:" + temp);
+                    // System.out.println("val:" + temp);
                     mem.add(temp);
                     temp = "";
                     log = 0;
@@ -221,6 +221,7 @@ public class TileMapper extends JFrame {
             ex.printStackTrace();
         }
 
+        System.out.println("Length: " + mem.size());
 
         int[][] warm_palette =  new int[][] {
             {124,63,88},
@@ -228,7 +229,7 @@ public class TileMapper extends JFrame {
             {249,168,117},
             {255,246,211}
         };
-        
+
         int[][] cool_palette =  new int[][] {
             {98,46,76},
             {117, 80, 232},
@@ -244,19 +245,16 @@ public class TileMapper extends JFrame {
         Til.pack();
         Til.setVisible(true);
 
-
-            for (int j = 1024; j < mem.size()/8; j++) {
-                Til.paintTile(TileMaker(mem, j), j%16, (j/16)%8);
-                Til.repaint();
-                try {
-                    Thread.sleep(50);
-                } catch (Exception e)
-                {
-                    System.out.println("This isn't worth it");
-                }
+        for (int j = 824; j < mem.size()/8; j++) {
+            Til.paintTile(TileMaker(mem, j), j%16, (j/16)%8);
+            Til.repaint();
+            try {
+                Thread.sleep(50);
+            } catch (Exception e)
+            {
+                System.out.println("This isn't worth it");
             }
-
-
+        }
 
         System.out.println("After JFrame");
     }

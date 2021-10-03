@@ -56,6 +56,30 @@ public class MemoryMap {
 
 		initializeMemory();
 		System.out.println("This is a new Memory Map!");
+
+		// Initializes VRAM with predefined contents.
+		// for (int i = 0; i < vRAM.length/16; i++) {
+		// 	vRAM[i*16] 	  = 0xFF;
+		// 	vRAM[i*16+1]  = 0x00;
+		// 	vRAM[i*16+2]  = 0x7F;
+		// 	vRAM[i*16+3]  = 0xFF;
+		// 	vRAM[i*16+4]  = 0x85;
+		// 	vRAM[i*16+5]  = 0x81;
+		// 	vRAM[i*16+6]  = 0x89;
+		// 	vRAM[i*16+7]  = 0x83;
+		// 	vRAM[i*16+8]  = 0x93;
+		// 	vRAM[i*16+9]  = 0x85;
+		// 	vRAM[i*16+10] = 0xA5;
+		// 	vRAM[i*16+11] = 0x8B;
+		// 	vRAM[i*16+12] = 0xC9;
+		// 	vRAM[i*16+13] = 0x97;
+		// 	vRAM[i*16+14] = 0x7E;
+		// 	vRAM[i*16+15] = 0xFF;
+		// }
+
+		// for (int i = 0; i < vRAM.length; i++) {
+		// 	vRAM[i] = (char)(i%32);
+		// }
 	}
 
 	public void initializeMemory() {
@@ -95,7 +119,7 @@ public class MemoryMap {
 	/**
 	 * Retrieves the byte from a space in memory
 	 * @param address
-	 * @return Unsigned byte from designated space in memory 
+	 * @return Unsigned byte from designated space in memory
 	 */
 	public char readMemory(int address) {
 		try {
@@ -107,10 +131,10 @@ public class MemoryMap {
 			else if (0xFE00 <= address && address < 0xFEA0) return OAM[address - 0xFE00];
 			else if (0xFF00 <= address && address < 0xFF4C) return io[address - 0xFF00];
 			else if (0xFF80 <= address && address <= 0xFFFF) return hRAM[address - 0xFF80];
-			else throw new IndexOutOfBoundsException(); 
+			else throw new IndexOutOfBoundsException();
 		}
 		catch (IndexOutOfBoundsException e) {
-			System.out.println("Invalid memory read at " + String.format("%04x", address));
+			// System.out.println("Invalid memory read at " + String.format("%04x", address));
 			return 0;
 		}
 	}
@@ -130,7 +154,7 @@ public class MemoryMap {
 			else if (0xFE00 <= address && address < 0xFEA0) OAM[address - 0xFE00] = data;
 			else if (0xFF00 <= address && address < 0xFF4C) io[address - 0xFF00] = data;
 			else if (0xFF80 <= address && address <= 0xFFFF) hRAM[address - 0xFF80] = data;
-			else throw new IndexOutOfBoundsException(); 
+			else throw new IndexOutOfBoundsException();
 		}
 		catch (IndexOutOfBoundsException e) {
 			// System.out.println("Invalid memory write at " + String.format("%04x", address));

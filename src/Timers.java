@@ -32,14 +32,14 @@ public class Timers {
         if (divCycles >= 255) {
             divCycles = 0;
             DIV += 1;
-        
+
             if(DIV >= 255) { DIV = 0; }
         }
 
         if ((TAC & 0x06) > 0) {
             cycleCnt += 1;
-            if (cycleCnt >= cycleDiv) { 
-                _interrupts.requestInterrupt(Interrupts.InterruptTypes.TIMER);   
+            if (cycleCnt >= cycleDiv) {
+                _interrupts.requestInterrupt(Interrupts.InterruptTypes.TIMER);
                 cycleCnt = 0;
 
                 TIMA += 1;
@@ -49,9 +49,9 @@ public class Timers {
             }
         }
 
-        _memoryMap.writeMemory(0xFF04,(char)DIV);
-        _memoryMap.writeMemory(0xFF05,(char)TIMA);
-        _memoryMap.writeMemory(0xFF06,(char)TMA);
-        _memoryMap.writeMemory(0xFF07,(char)TAC);
+        // _memoryMap.writeMemory(0xFF04,(char)DIV);
+        // _memoryMap.writeMemory(0xFF05,(char)TIMA);
+        // _memoryMap.writeMemory(0xFF06,(char)TMA);
+        // _memoryMap.writeMemory(0xFF07,(char)TAC);
     }
 }
