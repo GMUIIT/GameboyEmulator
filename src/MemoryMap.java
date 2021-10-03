@@ -16,7 +16,6 @@
 public class MemoryMap {
 
 	// public byte[] cartridgeMemory = new byte[0x200000]; useless until other cartridge types are implemented
-	public byte[][][] screenData = new byte[160][144][3];
 	private char[] romData = new char[0x8000];
 	private char[] vRAM = new char[0x2000];
 	private char[] sRAM = new char[0x2000];
@@ -24,19 +23,42 @@ public class MemoryMap {
 	private char[] OAM = new char[0xA0];
 	private char[] io = new char[0x4C];
 	private char[] hRAM = new char[0x80];
-	
 
+	private RegisterSet _registerSet;
 
 	/**
 	 * Constructor for memory map. Uses static method #Program.loadCartridge().
 	 */
-	public MemoryMap() {
-		byte[] cartridge = Program.loadCartridge();
+	public MemoryMap(RegisterSet registerSet, String catridgeName) {
+		_registerSet = registerSet;
+
+		byte[] cartridge = Program.loadCartridge(catridgeName);
 
 		for (int i = 0; i < cartridge.length; i++) {
-			this.romData[i] = (char) (cartridge[i]  & 0xFF);
+			this.romData[i] = (char)(cartridge[i]  & 0xFF);
 		}
 
+		initializeMemory();
+		System.out.println("This is a new Memory Map!");
+	}
+
+	/**
+	 * Constructor for memory map. Uses static method #Program.loadCartridge().
+	 */
+	public MemoryMap(RegisterSet registerSet) {
+		_registerSet = registerSet;
+
+		byte[] cartridge = Program.loadCartridge("Tetris (Japan) (En).gb");
+
+		for (int i = 0; i < cartridge.length; i++) {
+			this.romData[i] = (char)(cartridge[i]  & 0xFF);
+		}
+
+		initializeMemory();
+		System.out.println("This is a new Memory Map!");
+	}
+
+	public void initializeMemory() {
 		writeMemory(0xFF05, (char) 0x00);
 		writeMemory(0xFF06, (char) 0x00);
 		writeMemory(0xFF07, (char) 0x00);
@@ -68,8 +90,6 @@ public class MemoryMap {
 		writeMemory(0xFF4A, (char) 0x00);
 		writeMemory(0xFF4B, (char) 0x00);
 		writeMemory(0xFFFF, (char) 0x00);
-
-		System.out.println("This is a new Memory Map!");
 	}
 
 	/**
@@ -90,7 +110,7 @@ public class MemoryMap {
 			else throw new IndexOutOfBoundsException(); 
 		}
 		catch (IndexOutOfBoundsException e) {
-			System.out.println("Invalid memory read at " + address);
+			System.out.println("Invalid memory read at " + String.format("%04x", address));
 			return 0;
 		}
 	}
@@ -113,7 +133,34 @@ public class MemoryMap {
 			else throw new IndexOutOfBoundsException(); 
 		}
 		catch (IndexOutOfBoundsException e) {
-			System.out.println("Invalid memory write at " + address);
+			// System.out.println("Invalid memory write at " + String.format("%04x", address));
 		}
 	}
+
+	/**
+	 * Pushes a register to the stack.
+	 */
+	public void pushToStack(Reg_16 source) {
+		int value = _registerSet.getWord(source);
+
+		_registerSet.setSP(_registerSet.getSP() - 2);
+		writeMemory(_registerSet.getSP(), (char)(value >> 8));
+		writeMemory(_registerSet.getSP() + 1, (char)(value & 0xff));
+	}
+
+	/**
+	 * Pops a short value from the stack.
+	 */
+	public short popFromStack() {
+		short operand = (short)(((readMemory(_registerSet.getSP()) + 1) << 8) + (readMemory(_registerSet.getSP())));
+		_registerSet.setSP(_registerSet.getSP() + 2);
+		return operand;
+	}
+
+	public char[] getVRAM() { return vRAM; }
+	public char[] getSRAM() { return sRAM; }
+	public char[] getWRAM() { return wRAM; }
+	public char[] getOAM() { return OAM; }
+	public char[] getIO() { return io; }
+	public char[] getHRAM() { return hRAM; }
 }

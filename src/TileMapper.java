@@ -5,6 +5,7 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 import java.awt.Color;
+import javax.swing.JScrollPane;
 
 import javax.swing.*;
 
@@ -17,6 +18,7 @@ class Squares extends JPanel
 {
     private static final int PREF_W = 500;
     private static final int PREF_H = PREF_W;
+
 
     int[][] defaultPalette = new int[][] {
         {8, 24, 32},
@@ -45,7 +47,7 @@ class Squares extends JPanel
      * @param color
      */
     public void addSquare(int x, int y, int width, int height, int color) {
-        Color c = new Color(currentpalette[color][0], currentpalette[color][1], currentpalette[color][2]);
+        Color c = new Color(currentpalette[color][2], currentpalette[color][1], currentpalette[color][2]);
         Rectangle rect = new Rectangle(x, y, width, height);
 
         squares.add(rect);
@@ -76,9 +78,9 @@ public class TileMapper extends JFrame {
 
     public TileMapper() {
         super("Tile Mapper");
-
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         getContentPane().add(squares);
+
     }
 
     /**
@@ -93,7 +95,7 @@ public class TileMapper extends JFrame {
      * 
      * @param TileCode
      */
-    public void paintTile(String TileCode) {
+    public void paintTile(String TileCode,int a, int b) {
         int w = 10;
         int h = 10;
 
@@ -101,8 +103,8 @@ public class TileMapper extends JFrame {
             for (int j = 0; j < 8; j++) {
                 char currentChar = TileCode.charAt(i*8 + j);
 
-                int x = i*10;
-                int y = j*10;
+                int x = j * 10 + a * 80;
+                int y = i * 10 + b * 80;
 
                 squares.addSquare(x, y, w, h, (int)currentChar - 48);
             }
@@ -149,9 +151,10 @@ public class TileMapper extends JFrame {
         String a = "";
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                a += (Character.getNumericValue(l.charAt(i*8 + j)) + Character.getNumericValue(l.charAt(i*8+j+8)));
+                a += (Character.getNumericValue(l.charAt(i*16 + j)) + Character.getNumericValue(l.charAt(i*16+j+8)));
             }
         }
+        //System.out.println(a);
         return a;
     }
 
@@ -167,16 +170,19 @@ public class TileMapper extends JFrame {
         String answer;
 
         for (int i = 0; i < 16; i++) {
-            z = (i % 2 == 0);
-            ans += hexToBin(x.get(y*16 + i),z);
+            z = (i % 2 == 1);
+            ans += hexToBin(x.get(y * 16 + i), z);
         }
 
+
         answer = addUp(ans);
+
         return answer;
     }
 
     public static void main(String[] args) {
 
+        // String inputFile = "Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb";
         String inputFile = "Tetris (Japan) (En).gb";
 
         ArrayList<String> mem = new ArrayList<String>();
@@ -205,6 +211,7 @@ public class TileMapper extends JFrame {
 
                 // Adding the memory 8 bytes at a time
                 if (log == 1) {
+                    System.out.println("val:" + temp);
                     mem.add(temp);
                     temp = "";
                     log = 0;
@@ -214,11 +221,6 @@ public class TileMapper extends JFrame {
             ex.printStackTrace();
         }
 
-        //Change to 884 when testing is done
-        for (int j = 500; j < 505; j++)
-            System.out.println(TileMaker(mem,j));
-
-        String OneTile = TileMaker(mem,500);
 
         int[][] warm_palette =  new int[][] {
             {124,63,88},
@@ -237,12 +239,24 @@ public class TileMapper extends JFrame {
         System.out.println("Before JFrame");
         TileMapper Til = new TileMapper();
 
-        Til.changePalette(cool_palette);
 
-        Til.paintTile(OneTile);
-
+        Til.changePalette(warm_palette);
         Til.pack();
         Til.setVisible(true);
+
+
+            for (int j = 1024; j < mem.size()/8; j++) {
+                Til.paintTile(TileMaker(mem, j), j%16, (j/16)%8);
+                Til.repaint();
+                try {
+                    Thread.sleep(50);
+                } catch (Exception e)
+                {
+                    System.out.println("This isn't worth it");
+                }
+            }
+
+
 
         System.out.println("After JFrame");
     }

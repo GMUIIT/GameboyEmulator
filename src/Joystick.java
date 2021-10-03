@@ -150,7 +150,8 @@ public class Joystick implements KeyListener {
    */
   public static void main(String[] args)
   {
-    Joystick joystick = new Joystick(new MemoryMap());
+    RegisterSet registerSet = new RegisterSet();
+    Joystick joystick = new Joystick(new MemoryMap(registerSet));
 
     // Create and set up the window.
 		JFrame frame = new JFrame("Joystick debugging");

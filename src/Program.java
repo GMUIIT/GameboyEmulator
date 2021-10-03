@@ -15,6 +15,11 @@ import java.util.concurrent.*;
 public class Program
 {
   private static CPU cpu;
+  private static Timers timer;
+  private static MemoryMap memoryMap;
+  private static Interrupts interrupts;
+  private static RegisterSet registerSet;
+  private static LCD lcd;
   private static TimeUnit time = TimeUnit.MILLISECONDS;
 
   //#region ---- ---- ---- ---- ---- Emulator Functions
@@ -42,6 +47,8 @@ public class Program
 
     return cartridgeMemory;
   }
+
+
 
   /**
    * Override Method for loadCartridge that by default runs the Tetris Rom
@@ -108,24 +115,30 @@ public class Program
   /**
    * Update step of the emulator. Gets called every frame for the emulator
    * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
+   * https://github.com/retrio/gb-test-roms/tree/master/instr_timing
    */
   public static void emulatorUpdate() {
     final int MAXCYCLES = 69905;  // The amount of cycles that get executed every 60 Hz. (4194304/60)
     int cycles_count = 0;
 
+    // System.out.println(cpu.regSet.toString());
+
     while (cycles_count < MAXCYCLES) {
+      // System.out.println("SB Contents: " + memoryMap.readMemory(0xFF01)+"\n");
+
       int cycles = cpu.executeNextOpcode();
+
       cycles_count += cycles;
-      //UpdateTimers(cycles);
-      //UpdateGraphics(cycles);
-      //DoInterupts();
+      timer.updateTimers(cycles);
+      lcd.updateGraphics();
+      interrupts.doInterrupts();
 
       // Debugging:
-      // startDebugAt((short)0x02b4, 150L);
-      // breakpointAtAddress((short)0x02b4);
+      // startDebugAt((short)0x0208, 150);
+      // breakpointAtAddress((short)0x0208);
     }
 
-    //renderScreen();
+    lcd.renderGraphics();
   }
 
   //#endregion
@@ -137,7 +150,18 @@ public class Program
    * We might make that the file name of the ROM it runs for all I know... (edited by Angel)
    */
   public static void main(String[] args) {
-    cpu = new CPU(new RegisterSet(), new MemoryMap());
+    registerSet = new RegisterSet();
+    memoryMap = new MemoryMap(registerSet);
+    interrupts = new Interrupts(memoryMap, registerSet);
+
+    cpu = new CPU(registerSet, memoryMap, interrupts);
+    timer = new Timers(memoryMap, interrupts);
+
+    lcd = new LCD(memoryMap, interrupts);
+
+    lcd.pack();
+    lcd.setVisible(true);
+    lcd.repaint();
 
     // Main loop for the emulator
     while(true) {

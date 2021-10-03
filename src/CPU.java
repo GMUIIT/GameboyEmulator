@@ -13,9 +13,10 @@ public class CPU {
    * Constructor function for the class.
    * Not sure what to do with it... (Edited by Angel)
    */
-  public CPU(RegisterSet regSet, MemoryMap memMap) {
+  public CPU(RegisterSet regSet, MemoryMap memMap, Interrupts interrupts) {
     this.regSet = regSet;
     this.memMap = memMap;
+    this.interrupts = interrupts;
 
     System.out.println("This is a new CPU!");
     initializeHashmaps();
@@ -30,6 +31,7 @@ public class CPU {
   // private RegisterSet save3 = new RegisterSet(0, 0, 0, 0, 0, 0);
 
   public MemoryMap memMap;
+  public Interrupts interrupts;
 
 //#endregion
 
@@ -848,14 +850,14 @@ public class CPU {
    * Disables Interrupts
    */
   void DI() {
-    /** NOTE: Cannot implement until interrupts are implemented */
+    interrupts.disableInterrupts();
   }
   
   /**
    * Enables Interrupts
    */
   void EI() {
-    /** NOTE: Cannot implement until interrupts are implemented */
+    interrupts.enableInterrupts();
   }
 
   //#endregion
@@ -1287,11 +1289,8 @@ public class CPU {
    * Pop two bytes from stack & jump to that address, then enable interrupts.
    */
   void RETI() {
-    short operand = (short)(((memMap.readMemory(regSet.getSP()) + 1) << 8) + (memMap.readMemory(regSet.getSP())));
-    regSet.setSP(regSet.getSP() + 2);
-    regSet.setPC(operand);
-
     EI();
+    RET();
   }
 
   //#endregion
@@ -1317,7 +1316,7 @@ public class CPU {
    * @return
    */
   public int x0_Opcodes(int y_arg, int z_arg, int p_arg, int q_arg) {
-    int n_arg = (int)memMap.readMemory((regSet.getPC()));
+    // int n_arg = (int)memMap.readMemory((regSet.getPC()));
     short nn_arg = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
 
     switch(z_arg) {
@@ -1776,7 +1775,12 @@ public class CPU {
    * @param args
    */
   public static void main(String[] args) {
-    CPU cpu = new CPU(new RegisterSet(), new MemoryMap());
+    var registerSet = new RegisterSet();
+    var memoryMap = new MemoryMap(registerSet, "../testing/instr_timing.gb");
+    var interrupts = new Interrupts(memoryMap, registerSet);
+
+    var cpu = new CPU(registerSet, memoryMap, interrupts);
+    var timer = new Timers(memoryMap, interrupts);
 
     System.out.println("CPU Tests....");
 
