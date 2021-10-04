@@ -1,19 +1,18 @@
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.List;
+
 import java.awt.Color;
+import java.awt.*;
+import java.awt.image.*;
 
 import javax.swing.*;
-import javax.swing.event.MouseInputAdapter;
 
-class Pixels extends JPanel
+class Screen extends JPanel
 {
-    private static final int PREF_W = 500;
-    private static final int PREF_H = PREF_W;
+    private static final int PREF_ZOOM = 2;
+
+    private static final int PREF_W = 160 * PREF_ZOOM;
+    private static final int PREF_H = 144 * PREF_ZOOM;
 
     int[][] defaultPalette = new int[][] {
         {8, 24, 32},
@@ -24,8 +23,8 @@ class Pixels extends JPanel
 
     int[][] currentpalette = defaultPalette;
 
-    private List<Color> colors = new ArrayList<Color>();
-    private List<Rectangle> squares = new ArrayList<Rectangle>();
+    // Image
+    private BufferedImage image = new BufferedImage(160, 144, BufferedImage.TYPE_INT_RGB);
 
     /**
      *
@@ -41,42 +40,76 @@ class Pixels extends JPanel
      * @param height
      * @param color
      */
-    public void addSquare(int x, int y, int width, int height, int color) {
-        Color c = new Color(currentpalette[color][0], currentpalette[color][1], currentpalette[color][2]);
-        Rectangle rect = new Rectangle(x, y, width, height);
-
-        squares.add(rect);
-        colors.add(c);
+    public void addSquare(int x, int y, int color) {
+        Color c = new Color(currentpalette[3-color][0], currentpalette[3-color][1], currentpalette[3-color][2]);
+        image.setRGB(x, y, c.getRGB());
     }
 
     @Override
-    public Dimension getPreferredSize() {
-        return new Dimension(PREF_W, PREF_H);
-    }
+    public Dimension getPreferredSize() { return new Dimension(PREF_W, PREF_H); }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        drawScaledImage(image, this, g);
+    }
 
-        Graphics2D g2 = (Graphics2D) g;
-
-        for(int i = 0; i < squares.size(); i++) {
-            g2.setColor(colors.get(i));
-            g2.fill(squares.get(i));
+    public void clearScreen() {
+        for(int i = 0; i < 23040; i++) {
+            image.setRGB(i % 144, i / 160, Color.black.getRGB());
         }
+    }
+
+    /**
+     * Taken from here:
+     * https://www.codejava.net/java-se/graphics/drawing-an-image-with-automatic-scaling
+     * @param image
+     * @param canvas
+     * @param g
+     */
+    public static void drawScaledImage(Image image, Component canvas, Graphics g) {
+        int imgWidth = image.getWidth(null);
+        int imgHeight = image.getHeight(null);
+
+        double imgAspect = (double) imgHeight / imgWidth;
+
+        int canvasWidth = canvas.getWidth();
+        int canvasHeight = canvas.getHeight();
+
+        double canvasAspect = (double) canvasHeight / canvasWidth;
+
+        int x1 = 0; // top left X position
+        int y1 = 0; // top left Y position
+        int x2 = 0; // bottom right X position
+        int y2 = 0; // bottom right Y position
+
+        if (canvasAspect > imgAspect) {
+            y1 = canvasHeight;
+            // keep image aspect ratio
+            canvasHeight = (int) (canvasWidth * imgAspect);
+            y1 = (y1 - canvasHeight) / 2;
+        } else {
+            x1 = canvasWidth;
+            // keep image aspect ratio
+            canvasWidth = (int) (canvasHeight / imgAspect);
+            x1 = (x1 - canvasWidth) / 2;
+        }
+        x2 = canvasWidth + x1;
+        y2 = canvasHeight + y1;
+
+        g.drawImage(image, x1, y1, x2, y2, 0, 0, imgWidth, imgHeight, null);
     }
 }
 
-
-public class LCD extends JFrame {
-
-    Pixels pixels = new Pixels();
+public class LCD {
+    Screen _screen = new Screen();
     MemoryMap _memoryMap;
     Interrupts _interrupts;
+    JFrame _jframe;
 
-    int lcd_status;
-    int total_screen;
-    int viewable_screen;
+    int lcdStatus;
+    int totalScreen;
+    int viewableScreen;
 
     int scrollX;
     int scrollY;
@@ -97,75 +130,22 @@ public class LCD extends JFrame {
 
     public int[][] screenData = new int[160][144];
 
-    public LCD(MemoryMap memoryMap, Interrupts interrupts) {
-        super("LCD");
+    public LCD(JFrame jframe, MemoryMap memoryMap, Interrupts interrupts) {
+        // super("GMU IIT Gameboy Emulator");
 
         _memoryMap = memoryMap;
         _interrupts = interrupts;
+        _jframe = jframe;
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        getContentPane().add(pixels);
-
-        pixels.addMouseListener(new MouseInputAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                System.out.println("Current Memory Address:");
-
-                for (int i = 0; i < 32; i++) {
-                    System.out.print((int)_memoryMap.readMemory(0x8010 + i) + " ");
-                }
-            }
-        });
+        _jframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        _jframe.getContentPane().add(_screen);
     }
 
-    public void changePalette(int[][] palette) { pixels.changePalette(palette); }
+    public void changePalette(int[][] palette) { _screen.changePalette(palette); }
 
     public void updateGraphics() {
-        //Reading the current values of the scrolling here!
-        scrollX = _memoryMap.readMemory(0xFF42);
-        scrollY = _memoryMap.readMemory(0xFF43);
-        windowY = _memoryMap.readMemory(0xFF4A);
-        windowX = _memoryMap.readMemory(0xFF4B) - 7;
-        controlReg = _memoryMap.readMemory(0xFF41);
-
-        LCDEnable = (controlReg & 0b10000000) > 0;
-
-        if ((controlReg & 0b0100000) > 0) {
-            // Window Tile map display 9C00-9FFF
-            // 9C00-9FFF = 1024 = 32x32 Tile IDs
-            for (int i = 0x9c00; i <= 0x9FFF; i++) {
-                currentTileMap[i - 0x9C00] = _memoryMap.getVRAM()[i - 0x8000]; //_memoryMap.readMemory(i);
-            }
-        } else {
-            // Window Tile map display 9800-9BFF
-            // 9800-9BFF = 1024 = 32x32 Tile IDs
-            for (int i = 0x9800; i <= 0x9BFF; i++) {
-                currentTileMap[i - 0x9800] = _memoryMap.getVRAM()[i - 0x8000]; //_memoryMap.readMemory(i);
-            }
-        }
-
-        windowDisplay = (controlReg & 0b0010000) > 0;
-
-        if ((controlReg & 0b0001000) > 0) {
-            // BG & Window Tile Data Select 8000-8FFF
-            // 4096 rows 4096 / 32 = 128 types of tiles
-            for (int i = 0x8000; i <= 0x8FFF; i++) {
-                currentBGWindow[i - 0x8000] = _memoryMap.getVRAM()[i - 0x8000]; //_memoryMap.readMemory(i);
-            }
-        } else {
-            // BG & Window Tile Data Select 8800-97FF
-            // 4096 rows 4096 / 32 = 128 types of tiles
-            for (int i = 0x8800; i <= 0x97FF; i++) {
-                currentBGWindow[i - 0x8800] = _memoryMap.getVRAM()[i - 0x8000]; //_memoryMap.readMemory(i);
-            }
-        }
-
-        spriteSize = (controlReg & 0b0000100) > 0;
-        spriteEnabled = (controlReg & 0b0000010) > 0;
-        bgDisplay = (controlReg & 0b0000001) > 0;
-
         /*
-            taken from http://www.codeslinger.co.uk/pages/projects/gameboy/graphics.html
+            From: http://www.codeslinger.co.uk/pages/projects/gameboy/graphics.html
             Taken from the pandocs:
 
             Bit 7 - LCD Display Enable (0=Off, 1=On)
@@ -178,21 +158,77 @@ public class LCD extends JFrame {
             Bit 0 - BG Display (for CGB see below) (0=Off, 1=On)
         */
 
-        if (LCDEnable) {
-            // Draw background here
-            if (bgDisplay) { drawBackgrounds(); }
+        //Reading the current values of the scrolling here!
+        scrollX = _memoryMap.readMemory(0xFF42);
+        scrollY = _memoryMap.readMemory(0xFF43);
+        windowY = _memoryMap.readMemory(0xFF4A);
+        windowX = _memoryMap.readMemory(0xFF4B) - 7;
+        controlReg = _memoryMap.readMemory(0xFF41);
 
-            // Draw sprites here
-            if (spriteEnabled) { drawSprites(); }
+        int currentLine = _memoryMap.readMemory(0xFF44);
+        int ly = _memoryMap.readMemory(0xFF45);
 
-            // Draw windows
-            if (windowDisplay) { drawWindows(); }
+        LCDEnable = (controlReg & 0b10000000) > 0;
+
+        windowDisplay = (controlReg & 0b0010000) > 0;
+
+        spriteSize = (controlReg & 0b0000100) > 0;
+        spriteEnabled = (controlReg & 0b0000010) > 0;
+        bgDisplay = (controlReg & 0b0000001) > 0;
+
+        if (currentLine >= 144) {
+            _interrupts.requestInterrupt(Interrupts.InterruptTypes.VBANK);
+        }
+
+        // if (LCDEnable) {
+            if (bgDisplay) {
+                char[] vram = _memoryMap.getVRAM();
+                getTileIDs(vram);
+                getTileData(vram);
+
+                drawBackgrounds();
+            }
+            if (spriteEnabled) {
+                drawSprites();
+            }
+            if (windowDisplay) {
+                drawWindows();
+            }
+        // }
+    }
+
+    private void getTileIDs(char[] vram) {
+        if ((controlReg & 0b0100000) > 0) {
+            // Window Tile map display 9C00-9FFF
+            // 9C00-9FFF = 1024 = 32x32 Tile IDs
+            for (int i = 0x9c00; i <= 0x9FFF; i++) {
+                currentTileMap[i - 0x9C00] = vram[i - 0x8000]; //_memoryMap.readMemory(i);
+            }
+        } else {
+            // Window Tile map display 9800-9BFF
+            // 9800-9BFF = 1024 = 32x32 Tile IDs
+            for (int i = 0x9800; i <= 0x9BFF; i++) {
+                currentTileMap[i - 0x9800] = vram[i - 0x8000]; //_memoryMap.readMemory(i);
+            }
         }
     }
 
-    /**
-     *
-     */
+    private void getTileData(char[] vram) {
+        if ((controlReg & 0b0001000) > 0) {
+            // BG & Window Tile Data Select 8000-8FFF
+            // 4096 rows 4096 / 32 = 128 types of tiles
+            for (int i = 0x8000; i <= 0x8FFF; i++) {
+                currentBGWindow[i - 0x8000] = vram[i - 0x8000]; //_memoryMap.readMemory(i);
+            }
+        } else {
+            // BG & Window Tile Data Select 8800-97FF
+            // 4096 rows 4096 / 32 = 128 types of tiles
+            for (int i = 0x8800; i <= 0x97FF; i++) {
+                currentBGWindow[i - 0x8800] = vram[i - 0x8000]; //_memoryMap.readMemory(i);
+            }
+        }
+    }
+
     public int[] tileFormatter(int tileId, boolean bigOrNah)
     {
         int startingAddress = tileId*16;
@@ -204,38 +240,31 @@ public class LCD extends JFrame {
             int currentPixel_L = currentBGWindow[startingAddress + (i*2) + 1];
 
             for (int j = 0; j < 8; j++) {
-                tilePixels[i + j*8] = (((currentPixel_H & (0x80 >> j)) > 0) ? 1 : 0) + (((currentPixel_L & (0x80 >> j)) > 0) ? 2 : 0);
+                int lowerBit = ((currentPixel_H & (0x80 >> j)) > 0) ? 1 : 0;
+                int higherBit = ((currentPixel_L & (0x80 >> j)) > 0) ? 2 : 0;
+                tilePixels[i + j*8] = lowerBit + higherBit;
             }
         }
 
         return tilePixels;
     }
 
-    int currentVal = 0;
+    int[][] tempScreen = new int[256][256];
+    int[] currentTile = new int[64];
 
     public void drawBackgrounds() {
-
-        int[][] tempScreen = new int[256][256];
-        int[] currentTile = new int[64];
-
-        // 32 x 32 = 256
-
-        // i == tile position
-        // j == tile pixel position
-
-        for (int i = 0; i < 1024; i++) // 32 x 32 times
+        for (int i = 0; i < 1024; i++)
         {
+            // TODO(Angel): Fix Lag
             currentTile = tileFormatter(currentTileMap[i], false);
 
-            for (int j = 0; j < 64; j++) // 8 x 8 times
+            // TODO(Angel): Fix lag
+            for (int j = 0; j < 64; j++)
             {
-                // int x = ((j % 8) + ((i * 8) % 32)) % 255;
-                // int y = ((j / 8) + ((i * 8) / 32)) % 255;
-
                 int x = (j % 8) + 8*(i % 32);
                 int y = (j / 8) + 8*(i / 32);
 
-                tempScreen[x][y] = currentTile[j];
+                tempScreen[y][x] = currentTile[j];
             }
         }
 
@@ -252,39 +281,24 @@ public class LCD extends JFrame {
     }
 
     public void drawSprites() {
-
+        // TODO(Angel): Implement
 
     }
 
     public void drawWindows() {
-
+        // TODO(Angel): Implement
 
     }
 
     public void renderGraphics() {
-        int height = 5; // getHeight() / 160;
-        int width = 5; //getWidth() / 144;
-
-        setVisible(true);
-
-        //pixels.clear();
-        // for (int x = 0; x < screenData.length; x++) {
-        //     for (int y = 0; y < screenData[x].length; y++) {
-        //         pixels.addSquare(x * height, y * width, width, height, screenData[x][y]);
-        //     }
-        // }
-
+        _screen.clearScreen();
         for (int i = 0; i < screenData.length; i++) {
             for (int j = 0; j < screenData[i].length; j++) {
-                int currentChar = screenData[i][j];
-
-                int x = j * height;
-                int y = i * width;
-
-                pixels.addSquare(x, y, height, width, 3 - currentChar);
+                _screen.addSquare(i, j, screenData[i][j]);
             }
         }
 
-        repaint();
+        _jframe.setVisible(true);
+        _screen.repaint();
     }
 }

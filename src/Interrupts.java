@@ -57,10 +57,14 @@ public class Interrupts {
             } else if (testIfInterruptSet(InterruptTypes.P10_13)) {
                 handleInterrupt(InterruptTypes.P10_13);
             }
+
+            // _memoryMap.writeMemory(0xFF0F, (char)interruptFlag);
+            _memoryMap.writeMemory(0xFFFF, (char)interruptFlag);
         }
     }
 
     private void handleInterrupt(InterruptTypes interruptType) {
+        // System.out.println("Handling interrupt: " + interruptType.name());
         disableInterrupts();
         clearInterrupt(interruptType);
         _memoryMap.pushToStack(Reg_16.PC);

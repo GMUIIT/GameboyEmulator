@@ -57,29 +57,7 @@ public class MemoryMap {
 		initializeMemory();
 		System.out.println("This is a new Memory Map!");
 
-		// Initializes VRAM with predefined contents.
-		// for (int i = 0; i < vRAM.length/16; i++) {
-		// 	vRAM[i*16] 	  = 0xFF;
-		// 	vRAM[i*16+1]  = 0x00;
-		// 	vRAM[i*16+2]  = 0x7F;
-		// 	vRAM[i*16+3]  = 0xFF;
-		// 	vRAM[i*16+4]  = 0x85;
-		// 	vRAM[i*16+5]  = 0x81;
-		// 	vRAM[i*16+6]  = 0x89;
-		// 	vRAM[i*16+7]  = 0x83;
-		// 	vRAM[i*16+8]  = 0x93;
-		// 	vRAM[i*16+9]  = 0x85;
-		// 	vRAM[i*16+10] = 0xA5;
-		// 	vRAM[i*16+11] = 0x8B;
-		// 	vRAM[i*16+12] = 0xC9;
-		// 	vRAM[i*16+13] = 0x97;
-		// 	vRAM[i*16+14] = 0x7E;
-		// 	vRAM[i*16+15] = 0xFF;
-		// }
-
-		// for (int i = 0; i < vRAM.length; i++) {
-		// 	vRAM[i] = (char)(i%32);
-		// }
+		// vRamPresetInit();
 	}
 
 	public void initializeMemory() {
@@ -187,4 +165,26 @@ public class MemoryMap {
 	public char[] getOAM() { return OAM; }
 	public char[] getIO() { return io; }
 	public char[] getHRAM() { return hRAM; }
+
+	public void vRamPresetInit() {
+		// Initializes VRAM with predefined contents.
+		for (int i = 0; i < vRAM.length/16; i++) {
+			vRAM[i*16] 	  = 0xFF;
+			vRAM[i*16+1]  = 0x00;
+			vRAM[i*16+2]  = 0x7F;
+			vRAM[i*16+3]  = 0xFF;
+			vRAM[i*16+4]  = 0x85;
+			vRAM[i*16+5]  = 0x81;
+			vRAM[i*16+6]  = 0x89;
+			vRAM[i*16+7]  = 0x83;
+			vRAM[i*16+8]  = 0x93;
+			vRAM[i*16+9]  = 0x85;
+			vRAM[i*16+10] = 0xA5;
+			vRAM[i*16+11] = 0x8B;
+			vRAM[i*16+12] = 0xC9;
+			vRAM[i*16+13] = 0x97;
+			vRAM[i*16+14] = 0x7E;
+			vRAM[i*16+15] = 0xFF;
+		}
+	}
 }

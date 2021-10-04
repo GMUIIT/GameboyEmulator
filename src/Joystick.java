@@ -1,4 +1,3 @@
-import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.HashMap;
@@ -16,7 +15,8 @@ public class Joystick implements KeyListener {
   }
 
   private short joystickState = 0xff;
-  private MemoryMap memSet;
+  private MemoryMap _memoryMap;
+  private Interrupts _interrupts;
 
   // Each keycode corresponds to a certain button for the gameboy
   private HashMap<Integer, Button> boundedKeys = new HashMap<Integer, Button>();
@@ -25,8 +25,9 @@ public class Joystick implements KeyListener {
    * Public constructor that takes in a MemoryMap
    * @param memSet
    */
-  public Joystick(MemoryMap memSet) {
-    this.memSet = memSet;
+  public Joystick(MemoryMap memSet, Interrupts interrupts) {
+    _memoryMap = memSet;
+    _interrupts = interrupts;
 
     boundedKeys.put(KeyEvent.VK_A, Button.A);
     boundedKeys.put(KeyEvent.VK_S, Button.B);
@@ -72,7 +73,7 @@ public class Joystick implements KeyListener {
    * @return
    */
   public short getJoypadState() {
-    int readStatus = (int)memSet.readMemory(0xff00);
+    int readStatus = (int)_memoryMap.readMemory(0xff00);
     readStatus ^= 0xff;
 
     if ((readStatus & 0x10) == 0) {
@@ -117,7 +118,7 @@ public class Joystick implements KeyListener {
       }
       joystickState &= (0xff & (~(1 << currentButton)));
 
-      int keyReq = (int)memSet.readMemory(0xff00);
+      int keyReq = (int)_memoryMap.readMemory(0xff00);
 
       boolean requestInterrupt =
         ((currentButton > 3)  && ((keyReq & 0x10) == 0)) ||
@@ -125,7 +126,10 @@ public class Joystick implements KeyListener {
 
       if (requestInterrupt && !previouslyUnset) {
         System.out.println(getJoystatusShort());
+        _interrupts.requestInterrupt(Interrupts.InterruptTypes.P10_13);
       }
+
+      _memoryMap.writeMemory(0xff00, (char)joystickState);
     }
   }
 
@@ -135,23 +139,25 @@ public class Joystick implements KeyListener {
       joystickState |= 1 << (boundedKeys.get(e.getKeyCode()).value);
       System.out.println(getJoystatusShort());
     }
+
+    _memoryMap.writeMemory(0xff00, (char)joystickState);
   }
 
   /**
    * This is the Joystick tester code.
-   * 
+   *
    * If you want to compile and run this, open the src folder in the terminal.
-   * 
+   *
    * You compile this with this command:
    * javac -d compiled Joystick.java
-   * 
+   *
    * run with this command:
    * java -cp compiled Joystick
    */
   public static void main(String[] args)
   {
     RegisterSet registerSet = new RegisterSet();
-    Joystick joystick = new Joystick(new MemoryMap(registerSet));
+    Joystick joystick = new Joystick(new MemoryMap(registerSet), null);
 
     // Create and set up the window.
 		JFrame frame = new JFrame("Joystick debugging");

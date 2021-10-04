@@ -49,9 +49,10 @@ public class Timers {
             }
         }
 
-        // _memoryMap.writeMemory(0xFF04,(char)DIV);
-        // _memoryMap.writeMemory(0xFF05,(char)TIMA);
-        // _memoryMap.writeMemory(0xFF06,(char)TMA);
-        // _memoryMap.writeMemory(0xFF07,(char)TAC);
+        _memoryMap.getIO()[0xFF04 - 0xFF00] = (char)DIV;
+        _memoryMap.getIO()[0xFF04 - 0xFF00] = (char)DIV;
+        _memoryMap.getIO()[0xFF05 - 0xFF00] = (char)TIMA;
+        _memoryMap.getIO()[0xFF06 - 0xFF00] = (char)TMA;
+        _memoryMap.getIO()[0xFF07 - 0xFF00] = (char)TAC;
     }
 }

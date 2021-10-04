@@ -1,6 +1,11 @@
 import java.io.*;
 import java.util.concurrent.*;
 
+import javax.swing.*;
+import javax.swing.table.*;
+
+import java.awt.*;
+
 /**
  * This is the main program code. (Edited by Angel)
  *
@@ -19,6 +24,7 @@ public class Program
   private static MemoryMap memoryMap;
   private static Interrupts interrupts;
   private static RegisterSet registerSet;
+  private static Joystick joy;
   private static LCD lcd;
   private static TimeUnit time = TimeUnit.MILLISECONDS;
 
@@ -73,6 +79,43 @@ public class Program
     try { time.sleep(debugTime); } catch (Exception e) { }
   }
 
+
+  /**
+   * Update step of the emulator. Gets called every frame for the emulator
+   * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
+   * https://github.com/retrio/gb-test-roms/tree/master/instr_timing
+   */
+  public static void emulatorUpdate() {
+    final int MAXCYCLES = 69905;  // The amount of cycles that get executed every 60 Hz. (4194304/60)
+    int cycles_count = 0;
+
+    // System.out.println(cpu.regSet.toString());
+
+    while (cycles_count < MAXCYCLES) {
+      // System.out.println("SB Contents: " + memoryMap.readMemory(0xFF01)+"\n");
+
+      int cycles = cpu.executeNextOpcode();
+
+      cycles_count += cycles;
+      timer.updateTimers(cycles);
+      lcd.updateGraphics();
+      interrupts.doInterrupts();
+
+      // Debugging:
+      // startDebugAt((short)0x0208, 150);
+      // breakpointAtAddress((short)0x0208);
+
+      // startDebugAt((short)0x0100, 150);
+      // breakpointAtAddress((short)0x0100);
+    }
+
+    lcd.renderGraphics();
+  }
+
+  //#endregion
+
+  //#region ---- ---- ---- ---- ---- Debug Functions
+
   // Global variable used by startDebugAt that controls when opcode / reg data is printed
   // to the command line.
   private static boolean isDebug;
@@ -110,36 +153,113 @@ public class Program
     }
   }
 
+  //#endregion
+
+  //#region ---- ---- ---- ---- ---- UI Menues
+
   /**
-   * Update step of the emulator. Gets called every frame for the emulator
-   * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
-   * https://github.com/retrio/gb-test-roms/tree/master/instr_timing
+   *
+   * @return
    */
-  public static void emulatorUpdate() {
-    final int MAXCYCLES = 69905;  // The amount of cycles that get executed every 60 Hz. (4194304/60)
-    int cycles_count = 0;
+  public static void initializeMenuBar(JFrame jframe) {
+    JMenuBar menubar = new JMenuBar();
+    JMenu fileMenu = new JMenu("File");
+    JMenuItem file = new JMenuItem("Open rom");
+    JMenu editMenu = new JMenu("Edit");
 
-    // System.out.println(cpu.regSet.toString());
+    file.addActionListener((l) -> JOptionPane.showMessageDialog(null,"You selected: Load."));
 
-    while (cycles_count < MAXCYCLES) {
-      // System.out.println("SB Contents: " + memoryMap.readMemory(0xFF01)+"\n");
+    fileMenu.add(file);
+    menubar.add(fileMenu);
+    menubar.add(editMenu);
+    jframe.setJMenuBar(menubar);
+  }
 
-      int cycles = cpu.executeNextOpcode();
+  public static JTable debugMemoryPanel(String name, char[] memorySet, int offset) {
+    JFrame jframe = new JFrame(name);
 
-      cycles_count += cycles;
-      timer.updateTimers(cycles);
-      lcd.updateGraphics();
-      interrupts.doInterrupts();
+    final JTable table = new JTable();
 
-      // Debugging:
-      // startDebugAt((short)0x0208, 150);
-      // breakpointAtAddress((short)0x0208);
+    final DefaultTableModel model = new DefaultTableModel();
+    model.setColumnIdentifiers(new String[] {
+      name + " Address",
+      "Value"
+    });
 
-      startDebugAt((short)0x0100, 150);
-      breakpointAtAddress((short)0x0100);
+    for (int i = 0; i < memorySet.length; i++) {
+      model.addRow(new String[] {
+        "0x" + String.format("%04x", offset + i),
+        "B",
+      });
     }
 
-    lcd.renderGraphics();
+    table.setModel(model);
+
+		table.setPreferredScrollableViewportSize(new Dimension(200, 500));
+		table.setFillsViewportHeight(true);
+
+		JScrollPane scrollPane = new JScrollPane(table);
+
+    jframe.add(scrollPane);
+    jframe.pack();
+    jframe.setLocationRelativeTo(null);
+    jframe.setVisible(true);
+
+    return table;
+  }
+
+  public static JTable debugRegisterSet() {
+    JFrame jframe = new JFrame("Register Set");
+
+    final JTable table = new JTable();
+
+    final DefaultTableModel model = new DefaultTableModel();
+    model.setColumnIdentifiers(new String[] {
+     	"AF",
+			"BC",
+			"DE",
+			"HL",
+			"SP",
+      "PC"
+    });
+
+    model.addRow(new String[] {
+      "0x" + String.format("%04x", registerSet.getWord(Reg_16.AF)),
+      "0x" + String.format("%04x", registerSet.getWord(Reg_16.BC)),
+      "0x" + String.format("%04x", registerSet.getWord(Reg_16.DE)),
+      "0x" + String.format("%04x", registerSet.getWord(Reg_16.HL)),
+      "0x" + String.format("%04x", registerSet.getWord(Reg_16.SP)),
+      "0x" + String.format("%04x", registerSet.getWord(Reg_16.PC))
+    });
+
+    table.setModel(model);
+
+		table.setPreferredScrollableViewportSize(new Dimension(500, table.getMinimumSize().height));
+		table.setFillsViewportHeight(true);
+
+		JScrollPane scrollPane = new JScrollPane(table);
+
+    jframe.add(scrollPane);
+    jframe.pack();
+    jframe.setLocationRelativeTo(null);
+    jframe.setVisible(true);
+
+    return table;
+  }
+
+  private static void updateRAMTable(JTable table, char[] ramSet) {
+    for (int i = 0; i < ramSet.length; i++) {
+      table.setValueAt("0x" + String.format("%02x", (int)ramSet[i]), i, 1);
+    }
+  }
+
+  private static void updateRegSetTable(JTable table) {
+    table.setValueAt("0x" + String.format("%04x", registerSet.getWord(Reg_16.AF)), 0, 0);
+    table.setValueAt("0x" + String.format("%04x", registerSet.getWord(Reg_16.BC)), 0, 1);
+    table.setValueAt("0x" + String.format("%04x", registerSet.getWord(Reg_16.DE)), 0, 2);
+    table.setValueAt("0x" + String.format("%04x", registerSet.getWord(Reg_16.HL)), 0, 3);
+    table.setValueAt("0x" + String.format("%04x", registerSet.getWord(Reg_16.SP)), 0, 4);
+    table.setValueAt("0x" + String.format("%04x", registerSet.getWord(Reg_16.PC)), 0, 5);
   }
 
   //#endregion
@@ -157,17 +277,30 @@ public class Program
 
     cpu = new CPU(registerSet, memoryMap, interrupts);
     timer = new Timers(memoryMap, interrupts);
+    joy = new Joystick(memoryMap, interrupts);
 
-    lcd = new LCD(memoryMap, interrupts);
+    JFrame jframe = new JFrame("GMU IIT Gameboy Emulator");
+    jframe.addKeyListener(joy);
 
-    lcd.pack();
-    // lcd.repaint();
+    initializeMenuBar(jframe);
+
+    lcd = new LCD(jframe, memoryMap, interrupts);
+    jframe.pack();
+    jframe.setLocationRelativeTo(null);
+    jframe.isVisible();
+
+    JTable vRamTable = debugMemoryPanel("VRAM", memoryMap.getVRAM(), 0x8000);
+    JTable ioTable = debugMemoryPanel("IO", memoryMap.getIO(), 0xFF00);
+    JTable regTable = debugRegisterSet();
 
     // Main loop for the emulator
     while(true) {
+      updateRAMTable(vRamTable, memoryMap.getVRAM());
+      updateRAMTable(ioTable, memoryMap.getIO());
+      updateRegSetTable(regTable);
       emulatorUpdate();
       delay(1);  // This is so it tries to update the cpu at 60 hz. Might be better to compare times instead.
-      System.out.println(".");
+      // System.out.println(".");
     }
   }
 }

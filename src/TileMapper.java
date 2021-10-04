@@ -5,13 +5,10 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 import java.awt.Color;
-import javax.swing.JScrollPane;
 
 import javax.swing.*;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.lang.*;
 
 //Courtesy of my boi Stack overflow :)
 class Squares extends JPanel
@@ -230,12 +227,12 @@ public class TileMapper extends JFrame {
             {255,246,211}
         };
 
-        int[][] cool_palette =  new int[][] {
-            {98,46,76},
-            {117, 80, 232},
-            {96, 143, 207},
-            {139, 229, 255}
-        };
+        // int[][] cool_palette =  new int[][] {
+        //     {98,46,76},
+        //     {117, 80, 232},
+        //     {96, 143, 207},
+        //     {139, 229, 255}
+        // };
 
         System.out.println("Before JFrame");
         TileMapper Til = new TileMapper();

@@ -3,7 +3,7 @@ import java.util.HashMap;
 /**
  * CPU class.
  * Has all opcodes and stuff.
- * 
+ *
  * The #region and the #endregion are there for code folding basically since this is a very large
  * file and has many sections to it. This is also because I use an extention for it in VS Code. (Edited by Angel)
  */
@@ -36,7 +36,7 @@ public class CPU {
 //#endregion
 
 //#region ---- ---- ---- ---- ---- Dissassembly Decode Table ---- ---- ---- ---- ---- ----
-  
+
   /**
    * Argument modifiers for Jump Instructions specifying certain conditions to jump.
    */
@@ -241,7 +241,7 @@ public class CPU {
 
     regSet.setPC(regSet.getPC() + 2);
   }
-  
+
   /**
    * Load value at address (HL)/A into A/(HL). Increment HL.
    * @param register
@@ -271,7 +271,7 @@ public class CPU {
 
     regSet.setWord(Reg_16.HL, regSet.getWord(Reg_16.HL) - 1);
   }
-    
+
   /**
    * Put A into memory address $FF00+n, or Put memory address $FF00+n into A.
    * @param isAdest controls whether A is the destination or not
@@ -307,7 +307,7 @@ public class CPU {
     regSet.setWord(destination, operand);
     regSet.setSP(regSet.getSP() + 2);
   }
-  
+
   /**
    * Pushes register pair nn onto stack. Then, decrements the Stack Pointer (SP) twice.
    */
@@ -536,7 +536,7 @@ public class CPU {
     regSet.setA(result & 0xFF);
     regSet.setPC(regSet.getPC() + 1);
   }
-  
+
   /**
    * AND operation with source register to A
    * @param source
@@ -761,7 +761,7 @@ public class CPU {
 
     if (result != 0) regSet.clearZeroFlag();
     else regSet.setZeroFlag();
-    
+
     regSet.clearNegativeFlag();
     regSet.clearCarryFlag();
     regSet.clearHalfCarryFlag();
@@ -838,7 +838,7 @@ public class CPU {
   void HALT() {
     /** NOTE: Cannot implement until interrupts are implemented */
   }
-  
+
   /**
    * Halt CPU & LCD display until button pressed.
    */
@@ -852,7 +852,7 @@ public class CPU {
   void DI() {
     interrupts.disableInterrupts();
   }
-  
+
   /**
    * Enables Interrupts
    */
@@ -862,7 +862,7 @@ public class CPU {
 
   //#endregion
 
-  //#region ---- ---- ---- ---- ---- Rotates and Shifts 
+  //#region ---- ---- ---- ---- ---- Rotates and Shifts
 
   /**
    * Circular left rotates register A. Like a logical shift but wraps from bit 7 back to bit 0.
@@ -870,7 +870,7 @@ public class CPU {
    */
   void RLCA() {
     int result = regSet.getA() << 1;
-    
+
     if ((result & 0x100) > 0) {
       regSet.setCarryFlag();
       result |= 1;
@@ -892,7 +892,7 @@ public class CPU {
    */
   void RLA() {
     int result = regSet.getA() << 1;
-    
+
     if (regSet.getCarryFlag()) { result |= 0x01; }
     if ((result & 0x100) > 0) { regSet.setCarryFlag(); }
     else { regSet.clearCarryFlag(); }
@@ -912,7 +912,7 @@ public class CPU {
    */
   void RRCA() {
     int result = regSet.getA() >> 1;
-    
+
     if ((regSet.getA() & 0x1) > 0) {
       regSet.setCarryFlag();
       result |= 0x80;
@@ -934,7 +934,7 @@ public class CPU {
    */
   void RRA() {
     int result = regSet.getA() >> 1;
-    
+
     if (regSet.getCarryFlag()) { result |= 0x80; }
     if ((regSet.getA() & 0x1) > 0) { regSet.setCarryFlag(); }
     else { regSet.clearCarryFlag(); }
@@ -955,7 +955,7 @@ public class CPU {
   void RLC(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = value << 1;
-    
+
     if ((result & 0x100) > 0) {
       regSet.setCarryFlag();
       result |= 1;
@@ -971,7 +971,7 @@ public class CPU {
     if (source != null) regSet.setByte(source, result & 0xFF);
     else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
-  
+
   /**
    * Like RLA but works for the other registers (extended opcode)
    * @param source
@@ -979,7 +979,7 @@ public class CPU {
   void RL(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = value << 1;
-    
+
     if (regSet.getCarryFlag()) { result |= 0x01; }
     if ((result & 0x100) > 0) { regSet.setCarryFlag(); }
     else { regSet.clearCarryFlag(); }
@@ -993,7 +993,7 @@ public class CPU {
     if (source != null) regSet.setByte(source, result & 0xFF);
     else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
-  
+
   /**
    * Like RRCA but works for the other registers (extended opcode)
    * @param source
@@ -1001,7 +1001,7 @@ public class CPU {
   void RRC(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = value >> 1;
-    
+
     if ((value & 0x1) > 0) {
       regSet.setCarryFlag();
       result |= 0x80;
@@ -1017,7 +1017,7 @@ public class CPU {
     if (source != null) regSet.setByte(source, result & 0xFF);
     else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
-  
+
   /**
    * Like RRA but works for the other registers (extended opcode)
    * @param source
@@ -1025,7 +1025,7 @@ public class CPU {
   void RR(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = value >> 1;
-    
+
     if (regSet.getCarryFlag()) { result |= 0x80; }
     if ((value & 0x1) > 0) { regSet.setCarryFlag(); }
     else { regSet.clearCarryFlag(); }
@@ -1060,7 +1060,7 @@ public class CPU {
     if (source != null) regSet.setByte(source, result & 0xFF);
     else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
-  
+
   /**
    * Right shifts the source register. Keeps the value in the 7th bit so it like an arithmetic shift.
    * @param source
@@ -1068,7 +1068,7 @@ public class CPU {
   void SRA(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = (value >> 1) + (value & 0x80);
-    
+
     if ((value & 0x1) > 0) { regSet.setCarryFlag(); }
     else { regSet.clearCarryFlag(); }
 
@@ -1081,7 +1081,7 @@ public class CPU {
     if (source != null) regSet.setByte(source, result & 0xFF);
     else { memMap.writeMemory(value, (char)(result & 0xff)); }
   }
-  
+
   /**
    * Right shifts the source register. Also resets bit 0 of the source register.
    * @param source
@@ -1089,7 +1089,7 @@ public class CPU {
   void SRL(Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
     int result = (value >> 1);
-    
+
     if ((value & 0x1) > 0) { regSet.setCarryFlag(); }
     else { regSet.clearCarryFlag(); }
 
@@ -1114,7 +1114,7 @@ public class CPU {
    */
   void BIT(int b, Reg_8 source) {
     int value = (source != null) ? regSet.getByte(source) : memMap.readMemory(regSet.getWord(Reg_16.HL));
-    
+
     if ((value & (1 << b)) > 0) { regSet.clearZeroFlag(); }
     else { regSet.setZeroFlag(); }
 
@@ -1168,7 +1168,7 @@ public class CPU {
   void JP_CC(CC_t flag_condition) {
     short operand = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
     regSet.setPC(regSet.getPC() + 2);
-    
+
     switch(flag_condition) {
       case NZ: if (!regSet.getZeroFlag()) regSet.setPC(operand); break;
       case Z:  if (regSet.getZeroFlag()) regSet.setPC(operand); break;
@@ -1183,7 +1183,7 @@ public class CPU {
   void JP_HL() {
     regSet.setPC(regSet.getWord(Reg_16.HL));
   }
-  
+
   /**
    * Add n to current address and jump to it.
    */
@@ -1284,7 +1284,7 @@ public class CPU {
       case C:  if (regSet.getCarryFlag()) regSet.setPC(operand); break;
     }
   }
-  
+
   /**
    * Pop two bytes from stack & jump to that address, then enable interrupts.
    */
@@ -1306,7 +1306,7 @@ public class CPU {
   final int Q_MASK = 0b00001000;  // Mask for the Q portion of the arguments in the Opcode.
 
   public String current_opcode = "not decoded";
-  
+
   /**
    * Opcodes of the form: 00xx xxxx
    * @param y_arg
@@ -1516,7 +1516,7 @@ public class CPU {
           EI();
           return M_CYCLE;
         }
-      case 4: 
+      case 4:
         if (y_arg < 4) { current_opcode = "Call " + cc_args[y_arg] + ", " + String.format("%04x", nn_arg);
           CALL_CC(cc_args[y_arg]);
           return M_CYCLE;
@@ -1543,10 +1543,10 @@ public class CPU {
    * <p>Decodes and executes the opcode specified in the argument.</p>
    * Slightly Based on:
    * http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
-   * 
+   *
    * Mostly Based on:
    * https://gb-archive.github.io/salvage/decoding_gbz80_opcodes/Decoding%20Gamboy%20Z80%20Opcodes.html
-   * 
+   *
    * @param opcode - Opcode Command
    * @return Clock cycles needed for the operation
    */
@@ -1609,7 +1609,7 @@ public class CPU {
         return 0; // unhandled extended opcode
       }
   }
-  
+
   /**
    * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
    * @return
@@ -1631,7 +1631,7 @@ public class CPU {
    * @param ALU_opcode r_args value of the opcode
    */
   public void alu_tests(int ALU_opcode) {
-    
+
     System.out.println("\nRegisters before instruction:");
     System.out.println(regSet);
 
@@ -1642,7 +1642,7 @@ public class CPU {
 
       // Runs the opcode and returns how many M-cycles it took
       int clockCycles = executeOpcode((short)instruction);
-      
+
       System.out.print("Current instruction: " + current_opcode);
       System.out.printf("\tResults in A: 0x%02x", regSet.getByte(Reg_8.A));
       System.out.print("   " + regSet.getFlagsShort());
@@ -1678,7 +1678,7 @@ public class CPU {
 
       // Runs the opcode and returns how many M-cycles it took
       int clockCycles = executeOpcode((short)instruction);
-      
+
       System.out.print("Current instruction: " + current_opcode);
 
       // This is so the proper destination register is printed out for the results
@@ -1691,7 +1691,7 @@ public class CPU {
       System.out.println("   Cycles " + (clockCycles/4) + " M");
       if (y != -1) { break; }
     }
-    
+
     System.out.println("\nRegisters after instructions:");
     System.out.println(regSet);
   }
@@ -1701,7 +1701,7 @@ public class CPU {
    * @param ROT_opcode r_args value of the opcode
    */
   public void rot_tests(int ROT_opcode, boolean setCarry) {
-    
+
     System.out.println("\nRegisters before instructions:");
     System.out.println(regSet);
 
@@ -1717,7 +1717,7 @@ public class CPU {
 
       // Runs the opcode and returns how many M-cycles it took
       int clockCycles = executeExtendedOpcode((short)instruction);
-      
+
       System.out.print("Current instruction (extended): " + current_opcode);
       if (j != 6) { System.out.printf("\tResults in %s: 0x%02x", r_args[j], regSet.getByte(r_args[j])); }
       else { System.out.printf("\tResults in (HL): 0x%02x", 0); }
@@ -1736,7 +1736,7 @@ public class CPU {
    * @param BIT_opcode r_args value of the opcode
    */
   public void BIT_tests(int BIT_opcode) {
-    
+
     System.out.println("\nRegisters before instructions:");
     System.out.println(regSet);
 
@@ -1750,7 +1750,7 @@ public class CPU {
 
         // Runs the opcode and returns how many M-cycles it took
         int clockCycles = executeExtendedOpcode((short)instruction);
-        
+
         System.out.print("Current instruction (extended): " + current_opcode);
         if (j != 6) { System.out.printf("\tResults in %s: 0x%02x", r_args[j], regSet.getByte(r_args[j])); }
         else { System.out.printf("\tResults in (HL): 0x%02x", 0); }
@@ -1769,7 +1769,7 @@ public class CPU {
    * CPU Tester Program
    * You compile this with this command:
    * javac -d compiled CPU.java
-   * 
+   *
    * run with this command:
    * java -cp compiled CPU
    * @param args
@@ -1780,7 +1780,7 @@ public class CPU {
     var interrupts = new Interrupts(memoryMap, registerSet);
 
     var cpu = new CPU(registerSet, memoryMap, interrupts);
-    var timer = new Timers(memoryMap, interrupts);
+    // var timer = new Timers(memoryMap, interrupts);
 
     System.out.println("CPU Tests....");
 
