@@ -314,9 +314,9 @@ public class CPU {
   void PUSH(Reg_16 source) {
     int value = regSet.getWord(source);
 
-    regSet.setSP(regSet.getSP() - 2);
     memMap.writeMemory(regSet.getSP(), (char)(value >> 8));
     memMap.writeMemory(regSet.getSP() + 1, (char)(value & 0xff));
+    regSet.setSP(regSet.getSP() - 2);
 
     // int t = 1/0;
   }
@@ -850,6 +850,7 @@ public class CPU {
    * Disables Interrupts
    */
   void DI() {
+    System.out.println(regSet.toString());
     interrupts.disableInterrupts();
   }
 
@@ -1157,7 +1158,7 @@ public class CPU {
    */
   void JP() {
     short operand = (short)((memMap.readMemory(regSet.getPC() + 1) << 8) + (memMap.readMemory(regSet.getPC())));
-    current_opcode = "JP " + String.format("%04x", operand);
+    current_opcode = "JP " + String.format("%04x", (operand & 0xffff));
     regSet.setPC(operand);
   }
 
@@ -1508,6 +1509,7 @@ public class CPU {
       case 3:
         if (y_arg == 0) {
           JP();
+          if(Program.isDebug) { System.out.println("PC: " + String.format("%04x", regSet.getWord(Reg_16.PC))); }
           return M_CYCLE;
         } else if (y_arg == 6) { current_opcode = "DI";
           DI();
@@ -1565,6 +1567,11 @@ public class CPU {
     int q_arg = (opcode & Q_MASK) >> 3;
 
     current_opcode = String.format("x: %d, y: %d, z: %d, p: %d, q: %d", x_arg, y_arg, z_arg, p_arg, q_arg);
+
+    if (Program.isDebug) {
+      System.out.println("\nDecoding: " + current_opcode);
+      System.out.println("At Address: " + String.format("%04x", regSet.getPC() - 1));
+    }
 
     switch(x_arg) {
       case 0: return x0_Opcodes(y_arg, z_arg, p_arg, q_arg);

@@ -80,6 +80,8 @@ public class Program
   }
 
 
+  public static int cycles_count = 0;
+
   /**
    * Update step of the emulator. Gets called every frame for the emulator
    * Code from http://www.codeslinger.co.uk/pages/projects/gameboy/opcodes.html
@@ -87,7 +89,7 @@ public class Program
    */
   public static void emulatorUpdate() {
     final int MAXCYCLES = 69905;  // The amount of cycles that get executed every 60 Hz. (4194304/60)
-    int cycles_count = 0;
+    cycles_count = 0;
 
     // System.out.println(cpu.regSet.toString());
 
@@ -98,15 +100,24 @@ public class Program
 
       cycles_count += cycles;
       timer.updateTimers(cycles);
-      lcd.updateGraphics();
+      // lcd.updateGraphics(cycles);
+      lcd.gpuStep(cycles);
       interrupts.doInterrupts();
 
       // Debugging:
-      // startDebugAt((short)0x0208, 150);
-      // breakpointAtAddress((short)0x0208);
+      startDebugAt((short)0x215E, 150);
+      breakpointAtAddress((short)0x215E);
 
-      // startDebugAt((short)0x0100, 150);
-      // breakpointAtAddress((short)0x0100);
+      if (isDebug) {
+        updateRAMTable(vRamTable, memoryMap.getVRAM());
+        updateRAMTable(hRamTable, memoryMap.getHRAM());
+        updateRAMTable(ioTable, memoryMap.getIO());
+      }
+
+      updateRegSetTable(regTable);
+
+      // startDebugAt((short)0x27f3, 150);
+      // breakpointAtAddress((short)0x27f3);
     }
 
     lcd.renderGraphics();
@@ -118,7 +129,7 @@ public class Program
 
   // Global variable used by startDebugAt that controls when opcode / reg data is printed
   // to the command line.
-  private static boolean isDebug;
+  public static boolean isDebug;
 
   /**
    * Starts printing the current opcode and the flags to the cmdln when the program is at an addrress.
@@ -264,6 +275,12 @@ public class Program
 
   //#endregion
 
+  static JTable vRamTable;
+  static JTable ioTable;
+  static JTable hRamTable;
+  static JTable romTable;
+  static JTable regTable;
+
   /**
    * Main function.
    * Makes the java program actually run. (edited by Angel)
@@ -271,13 +288,20 @@ public class Program
    * We might make that the file name of the ROM it runs for all I know... (edited by Angel)
    */
   public static void main(String[] args) {
+    String rom = "Tetris (Japan) (En).gb";
+
+    // String rom = "../testing/instr_timing.gb";
+    // String rom = "../testing/interrupt_time.gb";
+
     registerSet = new RegisterSet();
-    memoryMap = new MemoryMap(registerSet);
+    memoryMap = new MemoryMap(registerSet, rom);
     interrupts = new Interrupts(memoryMap, registerSet);
 
     cpu = new CPU(registerSet, memoryMap, interrupts);
     timer = new Timers(memoryMap, interrupts);
     joy = new Joystick(memoryMap, interrupts);
+
+    memoryMap.initializeDependencies(joy, timer);
 
     JFrame jframe = new JFrame("GMU IIT Gameboy Emulator");
     jframe.addKeyListener(joy);
@@ -289,17 +313,18 @@ public class Program
     jframe.setLocationRelativeTo(null);
     jframe.isVisible();
 
-    JTable vRamTable = debugMemoryPanel("VRAM", memoryMap.getVRAM(), 0x8000);
-    JTable ioTable = debugMemoryPanel("IO", memoryMap.getIO(), 0xFF00);
-    JTable regTable = debugRegisterSet();
+    vRamTable = debugMemoryPanel("VRAM", memoryMap.getVRAM(), 0x8000);
+    ioTable = debugMemoryPanel("IO", memoryMap.getIO(), 0xFF00);
+    hRamTable = debugMemoryPanel("HRam", memoryMap.getHRAM(), 0xFF80);
+    romTable = debugMemoryPanel("ROM", memoryMap.getRom(), 0x0000);
+    regTable = debugRegisterSet();
+
+    updateRAMTable(romTable, memoryMap.getRom());
 
     // Main loop for the emulator
     while(true) {
-      updateRAMTable(vRamTable, memoryMap.getVRAM());
-      updateRAMTable(ioTable, memoryMap.getIO());
-      updateRegSetTable(regTable);
       emulatorUpdate();
-      delay(1);  // This is so it tries to update the cpu at 60 hz. Might be better to compare times instead.
+      // delay(16);  // This is so it tries to update the cpu at 60 hz. Might be better to compare times instead.
       // System.out.println(".");
     }
   }

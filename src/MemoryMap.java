@@ -26,6 +26,14 @@ public class MemoryMap {
 
 	private RegisterSet _registerSet;
 
+	public Joystick joystick;
+	public Timers timers;
+
+	public void initializeDependencies(Joystick joystick, Timers timers) {
+		this.joystick = joystick;
+		this.timers = timers;
+	}
+
 	/**
 	 * Constructor for memory map. Uses static method #Program.loadCartridge().
 	 */
@@ -102,6 +110,7 @@ public class MemoryMap {
 	public char readMemory(int address) {
 		try {
 			if 		(address < 0x8000) 						return romData[address];
+			else if (address == 0xFF00) return (char)joystick.getJoypadState();
 			else if (0x8000 <= address && address < 0xA000)	return vRAM[address - 0x8000];
 			else if (0xA000 <= address && address < 0xC000) return sRAM[address - 0xA000];
 			else if (0xC000 <= address && address < 0xE000) return wRAM[address - 0xC000];
@@ -159,6 +168,7 @@ public class MemoryMap {
 		return operand;
 	}
 
+	public char[] getRom() { return romData; }
 	public char[] getVRAM() { return vRAM; }
 	public char[] getSRAM() { return sRAM; }
 	public char[] getWRAM() { return wRAM; }

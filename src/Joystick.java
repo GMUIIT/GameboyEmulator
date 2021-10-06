@@ -73,7 +73,8 @@ public class Joystick implements KeyListener {
    * @return
    */
   public short getJoypadState() {
-    int readStatus = (int)_memoryMap.readMemory(0xff00);
+    // int readStatus = (int)_memoryMap.readMemory(0xff00);
+    int readStatus = _memoryMap.getIO()[0];
     readStatus ^= 0xff;
 
     if ((readStatus & 0x10) == 0) {

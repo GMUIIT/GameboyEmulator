@@ -107,6 +107,15 @@ public class LCD {
     Interrupts _interrupts;
     JFrame _jframe;
 
+    enum LCD_Mode {
+        HBLANK,
+		VBLANK,
+		OAM,
+		VRAM,
+    }
+
+    LCD_Mode lcdMode = LCD_Mode.HBLANK;
+
     int lcdStatus;
     int totalScreen;
     int viewableScreen;
@@ -116,6 +125,8 @@ public class LCD {
     int windowX;
     int windowY;
     int controlReg;
+
+    int currentScanline = 0;
 
     //int currentBackground[] = ;
     int currentWindow[] = new int[1024];
@@ -143,7 +154,7 @@ public class LCD {
 
     public void changePalette(int[][] palette) { _screen.changePalette(palette); }
 
-    public void updateGraphics() {
+    public void updateGraphics(int cycles) {
         /*
             From: http://www.codeslinger.co.uk/pages/projects/gameboy/graphics.html
             Taken from the pandocs:
@@ -165,9 +176,6 @@ public class LCD {
         windowX = _memoryMap.readMemory(0xFF4B) - 7;
         controlReg = _memoryMap.readMemory(0xFF41);
 
-        int currentLine = _memoryMap.readMemory(0xFF44);
-        int ly = _memoryMap.readMemory(0xFF45);
-
         LCDEnable = (controlReg & 0b10000000) > 0;
 
         windowDisplay = (controlReg & 0b0010000) > 0;
@@ -176,24 +184,41 @@ public class LCD {
         spriteEnabled = (controlReg & 0b0000010) > 0;
         bgDisplay = (controlReg & 0b0000001) > 0;
 
-        if (currentLine >= 144) {
-            _interrupts.requestInterrupt(Interrupts.InterruptTypes.VBANK);
-        }
-
         // if (LCDEnable) {
-            if (bgDisplay) {
-                char[] vram = _memoryMap.getVRAM();
-                getTileIDs(vram);
-                getTileData(vram);
+            // currentScanline -= cycles;
+        // } else {
+            // return;
+        // }
 
-                drawBackgrounds();
-            }
-            if (spriteEnabled) {
-                drawSprites();
-            }
-            if (windowDisplay) {
-                drawWindows();
-            }
+        // if (currentScanline <= 0)
+        // {
+            // time to move onto next scanline
+            // _memoryMap.writeMemory(0xff44, (char)(_memoryMap.readMemory(0xff44) + 1));
+            // char currentline = _memoryMap.readMemory(0xFF44);
+
+            // currentScanline = 456 ;
+
+            // we have entered vertical blank period
+            // if (currentline == 144)
+                // _interrupts.requestInterrupt(Interrupts.InterruptTypes.VBANK);
+
+            // if gone past scanline 153 reset to 0
+            // else if (currentline > 153)
+                // _memoryMap.writeMemory(0xff44, (char)0);
+
+            // draw the current scanline
+            // else if (currentline < 144)
+            // {
+                if (bgDisplay) {
+                    char[] vram = _memoryMap.getVRAM();
+                    getTileIDs(vram);
+                    getTileData(vram);
+
+                    drawBackgrounds();
+                }
+                if (spriteEnabled) { drawSprites(); }
+                if (windowDisplay) { drawWindows(); }
+            // }
         // }
     }
 
@@ -252,7 +277,8 @@ public class LCD {
     int[][] tempScreen = new int[256][256];
     int[] currentTile = new int[64];
 
-    public void drawBackgrounds() {
+    public void drawBackgrounds()
+    {
         for (int i = 0; i < 1024; i++)
         {
             // TODO(Angel): Fix Lag
@@ -273,12 +299,72 @@ public class LCD {
         {
             for(int j = 0; j < screenData[i].length; j++) //This would run 144 times.
             {
-                int currentXPixel = (i) % 256;
-                int currentYPixel = (j) % 256;
+                int currentXPixel = (i) % 255;
+                int currentYPixel = (j) % 255;
                 screenData[i][j] = tempScreen[currentXPixel][currentYPixel];
             }
         }
     }
+
+    int lastTicks = 0;
+    int tick = 0;
+    public void gpuStep(int cycles) {
+	    // tick += cycles - lastTicks;
+        // lastTicks = cycles;
+        tick += cycles;
+
+        // System.out.println("LCD Mode: " + lcdMode.toString());
+        // System.out.println("Ticks: " + tick);
+
+        switch(lcdMode) {
+        case HBLANK:
+            if (tick >= 204) {
+                currentScanline++;
+
+                if (currentScanline >= 143) {
+                    _interrupts.requestInterrupt(Interrupts.InterruptTypes.VBANK);
+                    lcdMode = LCD_Mode.VBLANK;
+                } else {
+                    lcdMode = LCD_Mode.OAM;
+                }
+
+                tick -= 204;
+            }
+            break;
+        case OAM:
+            if(tick >= 80) {
+                lcdMode = LCD_Mode.VRAM;
+                tick -= 80;
+            }
+            break;
+        case VBLANK:
+            if(tick >= 456) {
+                currentScanline++;
+
+                if(currentScanline > 153) {
+                    currentScanline = 0;
+                    lcdMode = LCD_Mode.OAM;
+                }
+
+                tick -= 456;
+            }
+            break;
+        case VRAM:
+            if(tick >= 172) {
+                lcdMode = LCD_Mode.HBLANK;
+
+                updateGraphics(cycles);
+
+                tick -= 172;
+            }
+            break;
+        default:
+            break;
+        }
+
+        _memoryMap.writeMemory(0xff44, (char)currentScanline);
+    }
+
 
     public void drawSprites() {
         // TODO(Angel): Implement
@@ -291,6 +377,12 @@ public class LCD {
     }
 
     public void renderGraphics() {
+        char[] vram = _memoryMap.getVRAM();
+        getTileIDs(vram);
+        getTileData(vram);
+
+        drawBackgrounds();
+
         _screen.clearScreen();
         for (int i = 0; i < screenData.length; i++) {
             for (int j = 0; j < screenData[i].length; j++) {
